@@ -1,0 +1,18 @@
+Description: Use Debian-provided libsparsehash-dev
+Origin: vendor
+Forwarded: http://bugs.openbossa.org/148
+Author: Didier Raboud <didier@raboud.com>
+Last-Updated: 2010-02-12
+Index: shiboken-0.2.0/libshiboken/CMakeLists.txt
+===================================================================
+--- shiboken-0.2.0.orig/libshiboken/CMakeLists.txt	2010-03-24 13:24:46.000000000 +0100
++++ shiboken-0.2.0/libshiboken/CMakeLists.txt	2010-03-24 13:24:48.000000000 +0100
+@@ -25,7 +25,7 @@
+ 
+ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
+                     ${PYTHON_INCLUDE_PATH}
+-                    ${CMAKE_SOURCE_DIR}/ext/sparsehash)
++                    )
+ add_library(libshiboken SHARED ${libshiboken_SRC})
+ set_property(TARGET libshiboken PROPERTY PREFIX "")
+ target_link_libraries(libshiboken

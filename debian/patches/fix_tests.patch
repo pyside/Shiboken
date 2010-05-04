@@ -1,0 +1,45 @@
+Description: Fixes the build-tests by including the library postfixes in the program calls
+Origin: vendor
+Forwarded: no (distribution-specific shipping of POSTFIX-ed libraries)
+Author: Didier Raboud <didier@raboud.com>
+Last-Update: 2010-03-24
+
+Index: shiboken-0.2.0/tests/otherbinding/CMakeLists.txt
+===================================================================
+--- shiboken-0.2.0.orig/tests/otherbinding/CMakeLists.txt	2010-03-24 13:24:46.000000000 +0100
++++ shiboken-0.2.0/tests/otherbinding/CMakeLists.txt	2010-03-24 13:25:14.000000000 +0100
+@@ -16,7 +16,7 @@
+ find_program(GENERATOR generatorrunner REQUIRED)
+ 
+ add_custom_command(OUTPUT ${other_SRC}
+-COMMAND ${GENERATOR} --generatorSet=${shiboken_BINARY_DIR}/shiboken_generator --enable-parent-ctor-heuristic
++COMMAND ${GENERATOR} --generatorSet=${shiboken_BINARY_DIR}/shiboken_generator${CMAKE_RELEASE_POSTFIX}${CMAKE_DEBUG_POSTFIX} --enable-parent-ctor-heuristic
+         ${CMAKE_CURRENT_SOURCE_DIR}/global.h
+         --include-paths=${libother_SOURCE_DIR}:${libsample_SOURCE_DIR}:${libsample_SOURCE_DIR}/..
+         --typesystem-paths=${CMAKE_CURRENT_SOURCE_DIR}:${sample_SOURCE_DIR}
+Index: shiboken-0.2.0/tests/samplebinding/CMakeLists.txt
+===================================================================
+--- shiboken-0.2.0.orig/tests/samplebinding/CMakeLists.txt	2010-03-24 13:24:46.000000000 +0100
++++ shiboken-0.2.0/tests/samplebinding/CMakeLists.txt	2010-03-24 13:25:14.000000000 +0100
+@@ -69,7 +69,7 @@
+ find_program(GENERATOR generatorrunner REQUIRED)
+ 
+ add_custom_command(OUTPUT ${sample_SRC}
+-COMMAND ${GENERATOR} --generatorSet=${shiboken_BINARY_DIR}/shiboken_generator --enable-parent-ctor-heuristic
++COMMAND ${GENERATOR} --generatorSet=${shiboken_BINARY_DIR}/shiboken_generator${CMAKE_RELEASE_POSTFIX}${CMAKE_DEBUG_POSTFIX} --enable-parent-ctor-heuristic
+         ${CMAKE_CURRENT_SOURCE_DIR}/global.h
+         --include-paths=${libsample_SOURCE_DIR}
+         --typesystem-paths=${CMAKE_CURRENT_SOURCE_DIR}
+Index: shiboken-0.2.0/tests/CMakeLists.txt
+===================================================================
+--- shiboken-0.2.0.orig/tests/CMakeLists.txt	2010-03-24 13:24:46.000000000 +0100
++++ shiboken-0.2.0/tests/CMakeLists.txt	2010-03-24 13:25:14.000000000 +0100
+@@ -14,7 +14,7 @@
+     list(FIND test_blacklist ${CMAKE_MATCH_1} expect_fail)
+     add_test("${CMAKE_MATCH_1}" sh
+              "${CMAKE_CURRENT_SOURCE_DIR}/run_test.sh"
+-             "${libsample_BINARY_DIR}:${libshiboken_BINARY_DIR}"
++             "${libsample_BINARY_DIR}:${libother_BINARY_DIR}:${libshiboken_BINARY_DIR}"
+              "${sample_BINARY_DIR}:${other_BINARY_DIR}"
+              "${PYTHON_EXECUTABLE}"
+              "${test_file}")

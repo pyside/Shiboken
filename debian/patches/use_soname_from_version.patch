@@ -1,0 +1,17 @@
+Description: Forces a SONAME to libshiboken
+Author: Didier Raboud <didier@raboud.com>
+Origin: vendor
+Forwarded: http://bugs.openbossa.org/192
+Last-Update: 2010-03-24
+Index: shiboken-0.2.0/libshiboken/CMakeLists.txt
+===================================================================
+--- shiboken-0.2.0.orig/libshiboken/CMakeLists.txt	2010-03-24 18:35:55.000000000 +0100
++++ shiboken-0.2.0/libshiboken/CMakeLists.txt	2010-03-24 18:36:42.000000000 +0100
+@@ -30,6 +30,7 @@
+ set_property(TARGET libshiboken PROPERTY PREFIX "")
+ target_link_libraries(libshiboken
+                       ${PYTHON_LIBRARIES})
++set_target_properties(libshiboken PROPERTIES VERSION ${libshiboken_VERSION} SOVERSION ${libshiboken_MAJOR_VERSION})
+ 
+ install(DIRECTORY . DESTINATION include/shiboken
+         FILES_MATCHING PATTERN "*.h"

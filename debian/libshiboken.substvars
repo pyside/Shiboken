@@ -1,0 +1,2 @@
+shlibs:Depends=libc6 (>= 2.2.5), libgcc1 (>= 1:4.1.1), libpython2.6 (>= 2.6), libstdc++6 (>= 4.3), python2.5 (>= 2.5)
+misc:Depends=

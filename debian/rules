@@ -1,0 +1,103 @@
+#!/usr/bin/make -f
+
+# Allow to find Qt 4.6 on Maemo
+PATH := /usr/bin/dh7:$(PATH)
+export PATH
+
+%:
+	dh --buildsystem=cmake --parallel $@
+
+# Python versions (default is first)
+PYVERSIONS=$(shell pyversions -v -r)
+DEFAULT_PY=$(shell pyversions -v -d)
+
+#### CONFIGURE ####
+
+override_dh_auto_configure: $(PYVERSIONS:%=override_dh_auto_configure-%)
+
+override_dh_auto_configure_dbg-%:
+	mkdir -p build-$*-dbg
+	dh_auto_configure --builddirectory=build-$*-dbg -- \
+	-DCMAKE_BUILD_TYPE:STRING="Debug" \
+	-DCMAKE_SKIP_RPATH=true \
+	-DCMAKE_MODULE_PATH="$(shell pwd)/debian/cmake" \
+	-DCMAKE_PYTHON_VERSION="$*-dbg;$*" \
+	-DCMAKE_PYTHONLIB_VERSION="$*_d;$*" \
+	-DBUILD_TESTS=FALSE \
+	-DCMAKE_DEBUG_POSTFIX=$(shell echo -py$*_d | sed -e 's/\.//g' -)
+
+override_dh_auto_configure-%:
+	mkdir -p build-$*
+	dh_auto_configure --builddirectory=build-$* -- \
+	-DCMAKE_BUILD_TYPE:STRING="Release" \
+	-DCMAKE_SKIP_RPATH=true \
+	-DCMAKE_MODULE_PATH="$(shell pwd)/debian/cmake" \
+	-DCMAKE_PYTHON_VERSION=$* \
+	-DCMAKE_PYTHONLIB_VERSION=$* \
+	-DBUILD_TESTS=FALSE \
+	-DCMAKE_RELEASE_POSTFIX=$(shell echo -py$* | sed -e 's/\.//g' -)
+
+#### BUILD ####
+
+override_dh_auto_build: $(PYVERSIONS:%=override_dh_auto_build-%)
+
+override_dh_auto_build_dbg-%:
+	dh_auto_build --builddirectory=build-$*-dbg
+
+override_dh_auto_build-%:
+	dh_auto_build --builddirectory=build-$*
+
+#### INSTALL ####
+
+override_dh_auto_install: $(PYVERSIONS:%=override_dh_auto_install-%)
+
+override_dh_auto_install_dbg-%:
+	dh_auto_install --builddirectory=build-$*-dbg --destdir=debian/tmp-dbg
+
+override_dh_auto_install-%:
+	dh_auto_install --builddirectory=build-$*
+
+#### STRIP ####
+override_dh_strip:
+	dh_strip --dbg-package=shiboken-dbg --exclude=_d.so
+
+#### TEST ####
+
+override_dh_auto_test: $(PYVERSIONS:%=override_dh_auto_test-%)
+
+override_dh_auto_test_dbg-%: 
+	dh_auto_test --builddirectory=build-$*-dbg
+
+override_dh_auto_test-%: prepare_test-%
+	dh_auto_test --builddirectory=build-$*
+
+prepare_test-%:
+	# Prepare the convenience symlinks for the tests
+	$(shell ln -s libother`echo -py$* | sed -e 's/\.//g' -`.so \
+	   build-$*/tests/libother/libother.so )
+	$(shell ln -s libsample`echo -py$* | sed -e 's/\.//g' -`.so \
+	   build-$*/tests/libsample/libsample.so )
+	$(shell ln -s other`echo -py$* | sed -e 's/\.//g' -`.so \
+	   build-$*/tests/otherbinding/other.so )
+	$(shell ln -s sample`echo -py$* | sed -e 's/\.//g' -`.so \
+	   build-$*/tests/samplebinding/sample.so )
+
+#### CLEAN ####
+override_dh_auto_clean:
+	rm -rf build-*
+	rm -rf debian/tmp-dbg
+
+#### DEBIAN INSTALL ####
+
+override_dh_install:
+	# Install symlinks for default version
+	$(shell ln -s libshiboken_generator`echo -py${DEFAULT_PY} | sed -e 's/\.//g' -`.so \
+	              debian/tmp/usr/lib/generatorrunner/libshiboken_generator.so )
+	$(shell ln -s libshiboken`echo -py${DEFAULT_PY} | sed -e 's/\.//g' -`.so \
+	              debian/tmp/usr/lib/libshiboken.so )
+	dh_install --list-missing
+
+#### Shared libs ####
+override_dh_makeshlibs:
+	# Package shiboken ships a usr/lib/generatorrunner/*.so plugin. No shared libs in there.
+	dh_makeshlibs -Nshiboken

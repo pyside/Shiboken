@@ -1,0 +1,64 @@
+Source: shiboken
+Section: devel
+Priority: extra
+Maintainer: PySide Team <pyside@openbossa.org>
+XSBC-Original-Maintainer: Debian Python Modules Team <python-modules-team@lists.alioth.debian.org>
+Build-Depends: debhelper (>= 7.3.12), cmake (>= 2.6.0),
+	libqt4-dev (>= 4.5.0), libapiextractor-dev (>= 0.5.1), generatorrunner (>= 0.4.2), libgenrunner-dev (>= 0.4.2),
+	python-all-dev, python-all-dbg
+XS-Python-Version: >= 2.5
+Standards-Version: 3.8.4
+Vcs-Svn: svn://svn.debian.org/python-modules/packages/shiboken/trunk/
+Vcs-Browser: http://svn.debian.org/wsvn/python-modules/packages/shiboken/?op=log
+Homepage: http://www.pyside.org/
+
+Package: shiboken
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: CPython bindings generator for C++ libraries
+ Shiboken is a bindings generator for C++ libraries that outputs CPython
+ source code. It uses generatorrunner and apiextractor to collect information
+ from library headers, merging modifications and handwritten code defined in the
+ typesystem description.
+ .
+ Shiboken is the binding generator used to create the PySide bindings.
+
+Package: libshiboken0.3
+Section: libs
+Architecture: any
+Conflicts: libshiboken0 (<< 0.3.0)
+Replaces: libshiboken0 (<< 0.3.0)
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: CPython bindings generator for C++ libraries - shared library
+ Shiboken is a bindings generator for C++ libraries that outputs CPython
+ source code. It uses generatorrunner and apiextractor to collect information
+ from library headers, merging modifications and handwritten code defined in the
+ typesystem description.
+ .
+ This is the shared library used by shiboken.
+
+Package: libshiboken-dev
+Section: libdevel
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libshiboken0.3 (= ${binary:Version})
+Description: development files for the shiboken bindings generator library
+ Shiboken is a bindings generator for C++ libraries that outputs CPython
+ source code. It uses generatorrunner and apiextractor to collect information
+ from library headers, merging modifications and handwritten code defined in the
+ typesystem description.
+ .
+ This package contains the development files for the library.
+
+Package: shiboken-dbg
+Section: debug
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends},
+         libshiboken0.3 (= ${binary:Version}),
+         shiboken (= ${binary:Version})
+Description: debugging symbols for shiboken and its library
+ Shiboken is a bindings generator for C++ libraries that outputs CPython
+ source code. It uses generatorrunner and apiextractor to collect information
+ from library headers, merging modifications and handwritten code defined in the
+ typesystem description.
+ .
+ This package contains the debugging symbols for shiboken and libshiboken0.

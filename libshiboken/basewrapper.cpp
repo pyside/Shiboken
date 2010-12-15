@@ -848,7 +848,7 @@ void destroy(SbkObject* self, void* cppData)
 
     //Python Object is not destroyed yet
     if (cppData && Shiboken::BindingManager::instance().hasWrapper(cppData)) {
-        // Remove from BindinManager
+        // Remove from BindingManager
         Shiboken::BindingManager::instance().releaseWrapper(self);
     }
 
@@ -958,7 +958,7 @@ void deallocData(SbkObject* self, bool cleanup)
         clearReferences(self);
     }
 
-    // Remove from BindinManager
+    // Remove from BindingManager
     Shiboken::BindingManager::instance().releaseWrapper(self);
 
     Py_XDECREF(self->ob_dict);

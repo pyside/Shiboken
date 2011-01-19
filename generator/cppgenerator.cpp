@@ -2721,8 +2721,7 @@ void CppGenerator::writeGetterFunction(QTextStream& s, const AbstractMetaField* 
 
 #ifdef AVOID_PROTECTED_HACK
     if (metaField->isProtected())
-        cppField = QString("(%1(%2*)%3)->%4()")
-            .arg(useReference ? '&' : ' ')
+        cppField = QString("((%1*)%2)->%3()")
             .arg(wrapperName(metaField->enclosingClass()))
             .arg(cpythonWrapperCPtr(metaField->enclosingClass(), "self"))
             .arg(protectedFieldGetterName(metaField));

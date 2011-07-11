@@ -3590,11 +3590,6 @@ void CppGenerator::writeClassRegister(QTextStream& s, const AbstractMetaClass* m
     // alloc private data
     s << INDENT << "Shiboken::ObjectType::initPrivateData(&" << pyTypeName << ");" << endl;
 
-    if (usePySideExtensions() && metaClass->isQObject()) {
-        s << INDENT << "Shiboken::ObjectType::setSubTypeInitHook(&" << pyTypeName << ", &PySide::initQObjectSubType);" << endl;
-        s << INDENT << "PySide::initDynamicMetaObject(&" << pyTypeName << ", &" << metaClass->qualifiedCppName() << "::staticMetaObject);";
-    }
-
     // class inject-code target/beginning
     if (!metaClass->typeEntry()->codeSnips().isEmpty()) {
         writeCodeSnips(s, metaClass->typeEntry()->codeSnips(), CodeSnip::Beginning, TypeSystem::TargetLangCode, 0, 0, metaClass);
@@ -3720,6 +3715,11 @@ void CppGenerator::writeClassRegister(QTextStream& s, const AbstractMetaClass* m
             writeInitQtMetaTypeFunctionBody(s, metaClass);
     }
 
+    if (usePySideExtensions() && metaClass->isQObject()) {
+        s << INDENT << "Shiboken::ObjectType::setSubTypeInitHook(&" << pyTypeName << ", &PySide::initQObjectSubType);" << endl;
+        s << INDENT << "PySide::initDynamicMetaObject(&" << pyTypeName << ", &" << metaClass->qualifiedCppName() << "::staticMetaObject);" << endl;
+    }
+
     s << '}' << endl << endl;
 }
 
@@ -3754,14 +3754,14 @@ void CppGenerator::writeInitQtMetaTypeFunctionBody(QTextStream& s, const Abstrac
                 s << INDENT << "qRegisterMetaType< ::" << className << " >(\"" << name << "\");" << endl;
         }
     }
+
     foreach (AbstractMetaEnum* metaEnum, metaClass->enums()) {
         if (!metaEnum->isPrivate() && !metaEnum->isAnonymous()) {
-            QString n = className + "::" + metaEnum->name();
             foreach (QString name, nameVariants)
-                s << INDENT << "qRegisterMetaType< ::" << n << " >(\"" << name << "::" << metaEnum->name() << "\");" << endl;
+                s << INDENT << "qRegisterMetaType< ::" << metaEnum->typeEntry()->qualifiedCppName() << " >(\"" << name << "::" << metaEnum->name() << "\");" << endl;
 
             if (metaEnum->typeEntry()->flags()) {
-                n = metaEnum->typeEntry()->flags()->originalName();
+                QString n = metaEnum->typeEntry()->flags()->originalName();
                 s << INDENT << "qRegisterMetaType< ::" << n << " >(\"" << n << "\");" << endl;
             }
         }
@@ -3914,8 +3914,18 @@ void CppGenerator::finishGeneration()
         writeMethodDefinition(s_globalFunctionDef, overloads);
     }
 
+    //this is a temporary solution before new type revison implementation
+    //We need move QMetaObject register before QObject
+    AbstractMetaClassList lst = classes();
+    AbstractMetaClass* klassQObject = lst.findClass("QObject");
+    AbstractMetaClass* klassQMetaObject = lst.findClass("QMetaObject");
+    if (klassQObject && klassQMetaObject) {
+        lst.removeAll(klassQMetaObject);
+        int indexOf = lst.indexOf(klassQObject);
+        lst.insert(indexOf, klassQMetaObject);
+    }
 
-    foreach (const AbstractMetaClass* cls, classes()) {
+    foreach (const AbstractMetaClass* cls, lst) {
         if (!shouldGenerate(cls))
             continue;
 
@@ -3943,6 +3953,8 @@ void CppGenerator::finishGeneration()
         s << "#include <Python.h>" << endl;
         s << "#include <shiboken.h>" << endl;
         s << "#include <algorithm>" << endl;
+        if (usePySideExtensions())
+            s << "#include <pyside.h>" << endl;
 
         s << "#include \"" << getModuleHeaderFileName() << '"' << endl << endl;
         foreach (const Include& include, includes)
@@ -3981,6 +3993,23 @@ void CppGenerator::finishGeneration()
         if (!snips.isEmpty()) {
             writeCodeSnips(s, snips, CodeSnip::Beginning, TypeSystem::NativeCode);
             s << endl;
+        }
+
+        // cleanup staticMetaObject attribute
+        if (usePySideExtensions()) {
+            s << "void cleanTypesAttributes(void) {" << endl;
+            s << INDENT << "for (int i = 0, imax = SBK_" << moduleName() << "_IDX_COUNT; i < imax; i++) {" << endl;
+            {
+                Indentation indentation(INDENT);
+                s << INDENT << "PyObject *pyType = reinterpret_cast<PyObject*>(" << cppApiVariableName() << "[i]);" << endl;
+                s << INDENT << "if (pyType && PyObject_HasAttrString(pyType, \"staticMetaObject\"))"<< endl;
+                {
+                    Indentation indentation(INDENT);
+                    s << INDENT << "PyObject_SetAttrString(pyType, \"staticMetaObject\", Py_None);" << endl;
+                }
+            }
+            s << INDENT << "}" << endl;
+            s << "}" << endl;
         }
 
         s << "// Global functions ";
@@ -4139,9 +4168,15 @@ void CppGenerator::finishGeneration()
 
         if (usePySideExtensions()) {
             foreach (AbstractMetaEnum* metaEnum, globalEnums)
-                if (!metaEnum->isAnonymous())
-                    s << INDENT << "qRegisterMetaType< ::" << metaEnum->name() << " >(\"" << metaEnum->name() << "\");" << endl;
+                if (!metaEnum->isAnonymous()) {
+                    s << INDENT << "qRegisterMetaType< ::" << metaEnum->typeEntry()->qualifiedCppName() << " >(\"" << metaEnum->name() << "\");" << endl;
+                }
+
+            // cleanup staticMetaObject attribute
+            s << INDENT << "PySide::registerCleanupFunction(cleanTypesAttributes);" << endl;
         }
+
+
 
         s << '}' << endl << endl;
     }

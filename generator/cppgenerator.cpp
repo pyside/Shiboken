@@ -1097,7 +1097,6 @@ void CppGenerator::writeConstructorWrapper(QTextStream& s, const AbstractMetaFun
     if (metaClass->isQObject() && usePySideExtensions()) {
         s << endl << INDENT << "// QObject setup" << endl;
         s << INDENT << "PySide::Signal::updateSourceObject(self);" << endl;
-        s << INDENT << "metaObject = cptr->metaObject(); // <- init python qt properties" << endl;
         s << INDENT << "if (kwds && !PySide::fillQtProperties(self, metaObject, kwds, argNames, " << argNamesSet.count() << "))" << endl;
         {
             Indentation indentation(INDENT);
@@ -3754,6 +3753,7 @@ void CppGenerator::writeInitQtMetaTypeFunctionBody(QTextStream& s, const Abstrac
                 s << INDENT << "qRegisterMetaType< ::" << className << " >(\"" << name << "\");" << endl;
         }
     }
+    /*
     foreach (AbstractMetaEnum* metaEnum, metaClass->enums()) {
         if (!metaEnum->isPrivate() && !metaEnum->isAnonymous()) {
             QString n = className + "::" + metaEnum->name();
@@ -3766,6 +3766,7 @@ void CppGenerator::writeInitQtMetaTypeFunctionBody(QTextStream& s, const Abstrac
             }
         }
     }
+    */
 }
 
 void CppGenerator::writeTypeDiscoveryFunction(QTextStream& s, const AbstractMetaClass* metaClass)

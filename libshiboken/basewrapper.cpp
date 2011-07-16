@@ -396,11 +396,15 @@ void DtorCallerVisitor::done()
     }
 }
 
+namespace Module { void init(); }
+
 void init()
 {
     static bool shibokenAlreadInitialised = false;
     if (shibokenAlreadInitialised)
         return;
+
+    Module::init();
 
     initTypeResolver();
     PyEval_InitThreads();

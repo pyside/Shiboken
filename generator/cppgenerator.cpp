@@ -755,9 +755,6 @@ void CppGenerator::writeVirtualMethodNative(QTextStream &s, const AbstractMetaFu
 
             Indentation indentation(INDENT);
             ac << INDENT;
-            if (convert && !hasConversionRule)
-                writeToPythonConversion(ac, arg->type(), func->ownerClass());
-
             if (hasConversionRule) {
                 ac << arg->name() << "_out";
             } else {
@@ -769,7 +766,10 @@ void CppGenerator::writeVirtualMethodNative(QTextStream &s, const AbstractMetaFu
                         argName.append(')');
                     }
                 }
-                ac << (convert ? "(" : "") << argName << (convert ? ")" : "");
+                if (convert)
+                    writeToPythonConversion(ac, arg->type(), func->ownerClass(), argName);
+                else
+                    ac << argName;
             }
 
             argConversions << argConv;
@@ -3233,7 +3233,7 @@ void CppGenerator::writeEnumInitialization(QTextStream& s, const AbstractMetaEnu
 
     if (!cppEnum->isAnonymous()) {
 
-        s << INDENT << "PyTypeObject* " << cpythonName << " = Shiboken::Enum::newTypeWithName(\"" << getClassTargetFullName(cppEnum) << "\", \"" 
+        s << INDENT << "PyTypeObject* " << cpythonName << " = Shiboken::Enum::newTypeWithName(\"" << getClassTargetFullName(cppEnum) << "\", \""
           << (cppEnum->enclosingClass() ? cppEnum->enclosingClass()->qualifiedCppName() + "::" : "") << cppEnum->name() << "\");" << endl;
 
         if (cppEnum->typeEntry()->flags())

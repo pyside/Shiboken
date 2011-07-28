@@ -396,11 +396,15 @@ void DtorCallerVisitor::done()
     }
 }
 
+namespace Module { void init(); }
+
 void init()
 {
     static bool shibokenAlreadInitialised = false;
     if (shibokenAlreadInitialised)
         return;
+
+    Module::init();
 
     initTypeResolver();
     PyEval_InitThreads();
@@ -619,6 +623,38 @@ void initPrivateData(SbkObjectType* self)
 {
     self->d = new SbkObjectTypePrivate;
     memset(self->d, 0, sizeof(SbkObjectTypePrivate));
+}
+
+bool introduceWrapperType(PyObject* enclosingObject,
+                          const char* typeName, const char* originalName,
+                          SbkObjectType* type, ObjectDestructor cppObjDtor,
+                          SbkObjectType* baseType, PyObject* baseTypes,
+                          bool isInnerClass)
+{
+    initPrivateData(type);
+    setOriginalName(type, originalName);
+    setDestructorFunction(type, cppObjDtor);
+
+    if (baseType) {
+        type->super.ht_type.tp_base = (PyTypeObject*)baseType;
+        if (baseTypes) {
+            for (int i = 0; i < PySequence_Fast_GET_SIZE(baseTypes); ++i)
+                BindingManager::instance().addClassInheritance((SbkObjectType*)PySequence_Fast_GET_ITEM(baseTypes, i), type);
+            type->super.ht_type.tp_bases = baseTypes;
+        } else {
+            BindingManager::instance().addClassInheritance(baseType, type);
+        }
+    }
+
+    if (PyType_Ready((PyTypeObject*)type) < 0)
+        return false;
+
+    if (isInnerClass)
+        return PyDict_SetItemString(enclosingObject, typeName, (PyObject*)type) == 0;
+
+    //PyModule_AddObject steals type's reference.
+    Py_INCREF((PyObject*)type);
+    return PyModule_AddObject(enclosingObject, typeName, (PyObject*)type) == 0;
 }
 
 void setSubTypeInitHook(SbkObjectType* self, SubTypeInitHook func)
@@ -1180,5 +1216,3 @@ void clearReferences(SbkObject* self)
 } // namespace Object
 
 } // namespace Shiboken
-
-

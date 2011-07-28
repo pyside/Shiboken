@@ -48,22 +48,21 @@ private:
     void writeMetaObjectMethod(QTextStream& s, const AbstractMetaClass* metaClass);
     void writeMetaCast(QTextStream& s, const AbstractMetaClass* metaClass);
 
-    void writeConstructorWrapper(QTextStream &s, const AbstractMetaFunctionList overloads);
+    void writeMethodWrapperPreamble(QTextStream& s, OverloadData& overloadData);
+    void writeConstructorWrapper(QTextStream& s, const AbstractMetaFunctionList overloads);
     void writeDestructorWrapper(QTextStream& s, const AbstractMetaClass* metaClass);
-    void writeMinimalConstructorCallArguments(QTextStream& s, const AbstractMetaClass* metaClass);
-    void writeMinimalConstructorCallArguments(QTextStream& s, const AbstractMetaType* type);
-    void writeMethodWrapper(QTextStream &s, const AbstractMetaFunctionList overloads);
+    void writeMethodWrapper(QTextStream& s, const AbstractMetaFunctionList overloads);
     void writeArgumentsInitializer(QTextStream& s, OverloadData& overloadData);
-    void writeCppSelfDefinition(QTextStream& s, const AbstractMetaFunction* func);
+    void writeCppSelfDefinition(QTextStream& s, const AbstractMetaFunction* func, bool hasStaticOverload = false);
+    void writeCppSelfDefinition(QTextStream& s, const AbstractMetaClass* metaClass, bool hasStaticOverload = false);
 
     void writeErrorSection(QTextStream& s, OverloadData& overloadData);
-    /**
-     *   Writes the check section for the validity of wrapped C++ objects.
-     *   \param s text stream to write
-     *   \param argName Python argument name
-     *   \param type the TypeEntry passed when the validity check must confirm the type of the Python wrapper to be checked
-     */
-    void writeInvalidCppObjectCheck(QTextStream& s, QString pyArgName = "self", const TypeEntry* type = 0);
+
+    /// Writes the check section for the validity of wrapped C++ objects.
+    void writeInvalidPyObjectCheck(QTextStream& s, const QString& pyObj);
+    void writeInvalidPyObjectCheck(QTextStream& s, const QString& pyObj, int errorCode);
+    void writeInvalidPyObjectCheck(QTextStream& s, const QString& pyObj, QString returnValue);
+
     void writeTypeCheck(QTextStream& s, const AbstractMetaType* argType, QString argumentName, bool isNumber = false, QString customType = "");
     void writeTypeCheck(QTextStream& s, const OverloadData* overloadData, QString argumentName);
 
@@ -95,6 +94,13 @@ private:
     {
         writeArgumentConversion(s, arg->type(), argName, pyArgName, context, defaultValue);
     }
+
+    void writePythonToCppTypeConversion(QTextStream& s,
+                                        const AbstractMetaType* type,
+                                        const QString& pyIn,
+                                        const QString& cppOut,
+                                        const AbstractMetaClass* context = 0,
+                                        const QString& defaultValue = QString());
 
     /**
      *   Set the Python method wrapper return value variable to Py_None if

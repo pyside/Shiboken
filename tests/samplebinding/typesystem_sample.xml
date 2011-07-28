@@ -5,6 +5,7 @@
 
     <primitive-type name="bool"/>
     <primitive-type name="double"/>
+    <primitive-type name="real"/>
     <primitive-type name="int"/>
     <primitive-type name="short"/>
     <primitive-type name="unsigned int" />
@@ -30,7 +31,7 @@
         <include file-name="handle.h" location="local"/>
     </primitive-type>
 
-    <primitive-type name="OddBool" target-lang-api-name="PyBool">
+    <primitive-type name="OddBool" target-lang-api-name="PyBool" default-constructor="OddBool(false)">
         <conversion-rule file="oddbool_conversions.h"/>
         <include file-name="oddbool.h" location="global"/>
     </primitive-type>
@@ -74,6 +75,8 @@
     <function signature="acceptLong(long)" />
     <function signature="acceptULong(unsigned long)" />
     <function signature="acceptDouble(double)" />
+    <function signature="acceptIntReference(int&amp;)" />
+    <function signature="acceptOddBoolReference(OddBool&amp;)" />
     <function signature="countCharacters(const char*)" />
     <function signature="gimmeInt()" />
     <function signature="gimmeDouble()" />
@@ -1246,6 +1249,7 @@
             </inject-code>
         </add-function>
     </value-type>
+    <value-type name="SizeF"/>
     <value-type name="MapUser"/>
     <value-type name="PairUser"/>
     <value-type name="ListUser">
@@ -1516,6 +1520,7 @@
 
     <value-type name="Filter" />
     <value-type name="Data">
+        <enum-type name="Field" />
         <add-function signature="operator&amp;(const Union&amp;)" return-type="Intersection">
             <inject-code class="target">
                 Intersection inter = *%CPPSELF &amp; %1;
@@ -1523,7 +1528,6 @@
             </inject-code>
         </add-function>
     </value-type>
-    <enum-type name="Data::Field" />
     <value-type name="Union">
         <add-function signature="operator&amp;(const Data&amp;)" return-type="Intersection">
             <inject-code class="target">

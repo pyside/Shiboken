@@ -519,7 +519,7 @@ void ShibokenGenerator::writeBaseConversion(QTextStream& s, const TypeEntry* typ
             typeName = protectedEnumSurrogateName(metaEnum);
     } else {
         typeName = type->qualifiedCppName().trimmed();
-        if (ShibokenGenerator::isObjectType(type))
+        if (isObjectType(type))
             typeName.append('*');
     }
     s << baseConversionString(typeName);
@@ -535,10 +535,16 @@ void ShibokenGenerator::writeBaseConversion(QTextStream& s, const AbstractMetaTy
             ptype = ptype->basicAliasedTypeEntry();
         typeName = ptype->name();
     } else {
-        if (!isCString(type)) // not "const char*"
+        if (!isCString(type)) {
             options |= Generator::ExcludeConst;
-        if (type->isContainer() || type->isFlags() || type->isEnum() || (type->isConstant() && type->isReference()))
-            options |= Generator::ExcludeReference;
+            if (type->typeEntry()->isPrimitive()
+                || type->isContainer()
+                || type->isFlags()
+                || type->isEnum()
+                || (type->isConstant() && type->isReference())) {
+                options |= Generator::ExcludeReference;
+            }
+        }
         typeName = translateTypeForWrapperMethod(type, context, options).trimmed();
     }
 
@@ -786,32 +792,15 @@ bool ShibokenGenerator::isPyInt(const AbstractMetaType* type)
 
 bool ShibokenGenerator::isCString(const AbstractMetaType* type)
 {
-    return type->isNativePointer() && type->name() == "char";
+    return type->isNativePointer()
+            && type->indirections() == 1
+            && type->name() == "char";
 }
 
 bool ShibokenGenerator::isPairContainer(const AbstractMetaType* type)
 {
     return type->isContainer()
             && ((ContainerTypeEntry*)type->typeEntry())->type() == ContainerTypeEntry::PairContainer;
-}
-
-bool ShibokenGenerator::isObjectType(const TypeEntry* type)
-{
-    if (type->isComplex())
-        return ShibokenGenerator::isObjectType((const ComplexTypeEntry*)type);
-    return type->isObject();
-}
-bool ShibokenGenerator::isObjectType(const ComplexTypeEntry* type)
-{
-    return type->isObject() || type->isQObject();
-}
-bool ShibokenGenerator::isObjectType(const AbstractMetaClass* metaClass)
-{
-    return ShibokenGenerator::isObjectType(metaClass->typeEntry());
-}
-bool ShibokenGenerator::isObjectType(const AbstractMetaType* metaType)
-{
-    return metaType->isObject() || metaType->isQObject();
 }
 
 bool ShibokenGenerator::isWrapperType(const TypeEntry* type)
@@ -822,22 +811,17 @@ bool ShibokenGenerator::isWrapperType(const TypeEntry* type)
 }
 bool ShibokenGenerator::isWrapperType(const ComplexTypeEntry* type)
 {
-    return ShibokenGenerator::isObjectType(type) || type->isValue();
+    return isObjectType(type) || type->isValue();
 }
 bool ShibokenGenerator::isWrapperType(const AbstractMetaType* metaType)
 {
-    return ShibokenGenerator::isObjectType(metaType)
+    return isObjectType(metaType)
             || metaType->typeEntry()->isValue();
-}
-
-bool ShibokenGenerator::isPointer(const AbstractMetaType* type)
-{
-    return type->indirections() > 0;
 }
 
 bool ShibokenGenerator::isPointerToWrapperType(const AbstractMetaType* type)
 {
-    return ShibokenGenerator::isObjectType(type) || type->isValuePointer();
+    return isObjectType(type) || type->isValuePointer();
 }
 
 bool ShibokenGenerator::shouldDereferenceArgumentPointer(const AbstractMetaArgument* arg)
@@ -847,8 +831,7 @@ bool ShibokenGenerator::shouldDereferenceArgumentPointer(const AbstractMetaArgum
 
 bool ShibokenGenerator::shouldDereferenceAbstractMetaTypePointer(const AbstractMetaType* metaType)
 {
-    return ShibokenGenerator::isWrapperType(metaType)
-            && !ShibokenGenerator::isPointer(metaType)
+    return isWrapperType(metaType) && !isPointer(metaType)
             && (metaType->isValue() || metaType->isReference());
 }
 
@@ -1182,10 +1165,6 @@ void ShibokenGenerator::writeCodeSnips(QTextStream& s,
                                        const AbstractMetaArgument* lastArg,
                                        const AbstractMetaClass* context)
 {
-    static QRegExp toPythonRegex("%CONVERTTOPYTHON\\[([^\\[]*)\\]");
-    static QRegExp toCppRegex("%CONVERTTOCPP\\[([^\\[]*)\\]");
-    static QRegExp isConvertibleRegex("%ISCONVERTIBLE\\[([^\\[]*)\\]");
-    static QRegExp checkTypeRegex("%CHECKTYPE\\[([^\\[]*)\\]");
     static QRegExp pyArgsRegex("%PYARG_(\\d+)");
 
     // detect is we should use pyargs instead of args as variable name for python arguments
@@ -1215,18 +1194,6 @@ void ShibokenGenerator::writeCodeSnips(QTextStream& s,
             code.replace("%TYPE", wrapperName(context));
             code.replace("%CPPTYPE", context->name());
         }
-
-        // replace "toPython" converters
-        code.replace(toPythonRegex, "Shiboken::Converter<\\1 >::toPython");
-
-        // replace "toCpp" converters
-        code.replace(toCppRegex, "Shiboken::Converter<\\1 >::toCpp");
-
-        // replace "isConvertible" check
-        code.replace(isConvertibleRegex, "Shiboken::Converter<\\1 >::isConvertible");
-
-        // replace "checkType" check
-        code.replace(checkTypeRegex, "Shiboken::Converter<\\1 >::checkType");
 
         if (func) {
             // replace %PYARG_# variables
@@ -1269,7 +1236,7 @@ void ShibokenGenerator::writeCodeSnips(QTextStream& s,
                 code.replace("%0.", QString("%1->").arg("cptr"));
                 code.replace("%0", "cptr");
             } else if (func->type()) {
-                QString returnValueOp = ShibokenGenerator::isPointerToWrapperType(func->type()) ? "%1->" : "%1.";
+                QString returnValueOp = isPointerToWrapperType(func->type()) ? "%1->" : "%1.";
                 if (ShibokenGenerator::isWrapperType(func->type()))
                     code.replace("%0.", returnValueOp.arg(CPP_RETURN_VAR));
                 code.replace("%0", CPP_RETURN_VAR);
@@ -1434,12 +1401,48 @@ void ShibokenGenerator::writeCodeSnips(QTextStream& s,
             replaceTemplateVariables(code, func);
         }
 
+        // replace "toPython" converters
+        replaceConvertToPythonTypeSystemVariable(code);
+
+        // replace "toCpp" converters
+        replaceConvertToCppTypeSystemVariable(code);
+
+        // replace "isConvertible" check
+        replaceConvertibleToCppTypeSystemVariable(code);
+
+        // replace "checkType" check
+        replaceTypeCheckTypeSystemVariable(code);
+
         if (!code.isEmpty()) {
             s << INDENT << "// Begin code injection" << endl;
             s << code;
             s << INDENT << "// End of code injection" << endl;
         }
     }
+}
+
+void ShibokenGenerator::replaceConvertToPythonTypeSystemVariable(QString& code)
+{
+    static QRegExp toPythonRegex("%CONVERTTOPYTHON\\[([^\\[]*)\\]");
+    code.replace(toPythonRegex, "Shiboken::Converter<\\1 >::toPython");
+}
+
+void ShibokenGenerator::replaceConvertToCppTypeSystemVariable(QString& code)
+{
+    static QRegExp toCppRegex("%CONVERTTOCPP\\[([^\\[]*)\\]");
+    code.replace(toCppRegex, "Shiboken::Converter<\\1 >::toCpp");
+}
+
+void ShibokenGenerator::replaceConvertibleToCppTypeSystemVariable(QString& code)
+{
+    static QRegExp isConvertibleRegex("%ISCONVERTIBLE\\[([^\\[]*)\\]");
+    code.replace(isConvertibleRegex, "Shiboken::Converter<\\1 >::isConvertible");
+}
+
+void ShibokenGenerator::replaceTypeCheckTypeSystemVariable(QString& code)
+{
+    static QRegExp checkTypeRegex("%CHECKTYPE\\[([^\\[]*)\\]");
+    code.replace(checkTypeRegex, "Shiboken::Converter<\\1 >::checkType");
 }
 
 bool ShibokenGenerator::injectedCodeUsesCppSelf(const AbstractMetaFunction* func)
@@ -1617,7 +1620,7 @@ QString ShibokenGenerator::extendedToCppFunctionName(const TypeEntry* targetType
 bool ShibokenGenerator::isCopyable(const AbstractMetaClass *metaClass)
 
 {
-    if (metaClass->isNamespace() || ShibokenGenerator::isObjectType(metaClass))
+    if (metaClass->isNamespace() || isObjectType(metaClass))
         return false;
     else if (metaClass->typeEntry()->copyable() == ComplexTypeEntry::Unknown)
         return metaClass->hasCloneOperator();

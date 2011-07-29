@@ -343,7 +343,7 @@ public:
     /// Returns true if the generated code should use the "#define protected public" hack.
     bool avoidProtectedHack() const;
     QString cppApiVariableName(const QString& moduleName = QString()) const;
-    QString getTypeIndexVariableName(const TypeEntry* metaType);
+    QString getTypeIndexVariableName(const TypeEntry* type);
     /// Returns true if the user don't want verbose error messages on the generated bindings.
     bool verboseErrorMessagesDisabled() const;
 
@@ -375,15 +375,16 @@ protected:
     static QHash<QString, QString> m_pythonOperators;
     static QHash<QString, QString> m_formatUnits;
     static QHash<QString, QString> m_tpFuncs;
+    static QStringList m_knownPythonTypes;
 
     void clearTpFuncs();
 
     const char* name() const { return "Shiboken"; }
 
-    /**
-     *   Initialize correspondences between primitive and Python types
-     */
+    /// Initializes correspondences between primitive and Python types.
     static void initPrimitiveTypesCorrespondences();
+    /// Initializes a list of Python known type names.
+    static void initKnownPythonTypes();
 
     void writeFunctionCall(QTextStream& s,
                            const AbstractMetaFunction* metaFunc,

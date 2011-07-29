@@ -45,6 +45,7 @@ QHash<QString, QString> ShibokenGenerator::m_pythonPrimitiveTypeName = QHash<QSt
 QHash<QString, QString> ShibokenGenerator::m_pythonOperators = QHash<QString, QString>();
 QHash<QString, QString> ShibokenGenerator::m_formatUnits = QHash<QString, QString>();
 QHash<QString, QString> ShibokenGenerator::m_tpFuncs = QHash<QString, QString>();
+QStringList ShibokenGenerator::m_knownPythonTypes = QStringList();
 
 
 static QString resolveScopePrefix(const AbstractMetaClass* scope, const QString& value)
@@ -70,6 +71,9 @@ ShibokenGenerator::ShibokenGenerator() : Generator()
 
     if (m_tpFuncs.isEmpty())
         ShibokenGenerator::clearTpFuncs();
+
+    if (m_knownPythonTypes.isEmpty())
+        ShibokenGenerator::initKnownPythonTypes();
 }
 
 void ShibokenGenerator::clearTpFuncs()
@@ -176,6 +180,15 @@ void ShibokenGenerator::initPrimitiveTypesCorrespondences()
     m_formatUnits.insert("unsigned __int64", "K");
     m_formatUnits.insert("double", "d");
     m_formatUnits.insert("float", "f");
+}
+
+void ShibokenGenerator::initKnownPythonTypes()
+{
+    m_knownPythonTypes.clear();
+    m_knownPythonTypes << "PyBool" << "PyInt" << "PyFloat" << "PyLong";
+    m_knownPythonTypes << "PyObject" << "PyString" << "PyBuffer";
+    m_knownPythonTypes << "PySequence" << "PyTuple" << "PyList" << "PyDict";
+    m_knownPythonTypes << "PyObject*" << "PyObject *" << "PyTupleObject*";
 }
 
 QString ShibokenGenerator::translateTypeForWrapperMethod(const AbstractMetaType* cType,
@@ -1657,8 +1670,7 @@ AbstractMetaType* ShibokenGenerator::buildAbstractMetaTypeFromString(QString typ
         metaType->setIndirections(indirections);
         metaType->setReference(isReference);
         metaType->setConstant(isConst);
-        if (metaType->name() == "char" && metaType->indirections() == 1)
-            metaType->setTypeUsagePattern(AbstractMetaType::NativePointerPattern);
+        metaType->decideUsagePattern();
     }
     return metaType;
 }
@@ -1792,10 +1804,10 @@ QString ShibokenGenerator::cppApiVariableName(const QString& moduleName) const
     return result;
 }
 
-QString ShibokenGenerator::getTypeIndexVariableName(const TypeEntry* metaType)
+QString ShibokenGenerator::getTypeIndexVariableName(const TypeEntry* type)
 {
     QString res("SBK_");
-    res += metaType->qualifiedCppName();
+    res += type->qualifiedCppName();
     res.replace("::", "_");
     res.replace("<", "_");
     res.replace(">", "_");
@@ -1851,5 +1863,3 @@ QString  ShibokenGenerator::getDefaultValue(const AbstractMetaFunction* func, co
     }
     return QString();
 }
-
-

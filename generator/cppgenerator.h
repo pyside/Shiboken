@@ -57,11 +57,10 @@ private:
     void writeCppSelfDefinition(QTextStream& s, const AbstractMetaClass* metaClass, bool hasStaticOverload = false);
 
     void writeErrorSection(QTextStream& s, OverloadData& overloadData);
+    void writeFunctionReturnErrorCheckSection(QTextStream& s, bool hasReturnValue = true);
 
     /// Writes the check section for the validity of wrapped C++ objects.
     void writeInvalidPyObjectCheck(QTextStream& s, const QString& pyObj);
-    void writeInvalidPyObjectCheck(QTextStream& s, const QString& pyObj, int errorCode);
-    void writeInvalidPyObjectCheck(QTextStream& s, const QString& pyObj, QString returnValue);
 
     void writeTypeCheck(QTextStream& s, const AbstractMetaType* argType, QString argumentName, bool isNumber = false, QString customType = "");
     void writeTypeCheck(QTextStream& s, const OverloadData* overloadData, QString argumentName);
@@ -86,14 +85,19 @@ private:
                                  const QString& argName, const QString& pyArgName,
                                  const AbstractMetaClass* context = 0,
                                  const QString& defaultValue = QString());
-    /// Convenience method to call writeArgumentConversion with an AbstractMetaArgument instead of an AbstractMetaType.
-    void writeArgumentConversion(QTextStream& s, const AbstractMetaArgument* arg,
-                                 const QString& argName, const QString& pyArgName,
-                                 const AbstractMetaClass* context = 0,
-                                 const QString& defaultValue = QString())
-    {
-        writeArgumentConversion(s, arg->type(), argName, pyArgName, context, defaultValue);
-    }
+
+    /**
+     *  Returns the AbstractMetaType for a function argument.
+     *  If the argument type was modified in the type system, this method will
+     *  try to build a new type based on the type name defined in the type system.
+     *  \param  func    The function which owns the argument.
+     *  \param  argPos  Argument position in the function signature.
+     *                  Note that the position 0 represents the return value, and the function
+     *                  parameters start counting on 1.
+     *  \param  newType It is set to true if the type returned is a new object that must be deallocated.
+     *  \return The type of the argument indicated by \p argPos.
+     */
+    const AbstractMetaType* getArgumentType(const AbstractMetaFunction* func, int argPos, bool* newType);
 
     void writePythonToCppTypeConversion(QTextStream& s,
                                         const AbstractMetaType* type,
@@ -160,6 +164,7 @@ private:
     void writeRichCompareFunction(QTextStream& s, const AbstractMetaClass* metaClass);
     void writeToPythonFunction(QTextStream& s, const AbstractMetaClass* metaClass);
 
+    void writeEnumsInitialization(QTextStream& s, AbstractMetaEnumList& enums);
     void writeEnumInitialization(QTextStream& s, const AbstractMetaEnum* metaEnum);
 
     void writeSignalInitialization(QTextStream& s, const AbstractMetaClass* metaClass);
@@ -213,6 +218,9 @@ private:
 
     /// Write default implementations for sequence protocol
     void writeStdListWrapperMethods(QTextStream& s, const AbstractMetaClass* metaClass);
+    /// Helper function for writeStdListWrapperMethods.
+    void writeIndexError(QTextStream& s, const QString& errorMsg);
+
     QString writeReprFunction(QTextStream& s, const AbstractMetaClass* metaClass);
 
     void writeRegisterType(QTextStream& s, const AbstractMetaClass* metaClass);
@@ -234,9 +242,21 @@ private:
     // Mapping protocol structure members names.
     static QHash<QString, QString> m_mpFuncs;
 
-    int m_currentErrorCode;
+    static int m_currentErrorCode;
 
+    /// Helper class to set and restore the current error code.
+    class ErrorCode {
+    public:
+        explicit ErrorCode(int errorCode) {
+            m_savedErrorCode = CppGenerator::m_currentErrorCode;
+            CppGenerator::m_currentErrorCode = errorCode;
+        }
+        ~ErrorCode() {
+            CppGenerator::m_currentErrorCode = m_savedErrorCode;
+        }
+    private:
+        int m_savedErrorCode;
+    };
 };
 
 #endif // CPPGENERATOR_H
-

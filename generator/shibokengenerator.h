@@ -24,14 +24,20 @@
 #ifndef SHIBOKENGENERATOR_H
 #define SHIBOKENGENERATOR_H
 
-#define PYTHON_RETURN_VAR         "pyResult"
-#define CPP_RETURN_VAR            "cppResult"
-#define THREAD_STATE_SAVER_VAR    "threadStateSaver"
-#define CPP_SELF_VAR              "cppSelf"
 #define CPP_ARG                   "cppArg"
-#define CPP_ARG0                  (CPP_ARG "0")
+#define CPP_ARG0                  CPP_ARG"0"
+#define CPP_RETURN_VAR            "cppResult"
+#define CPP_SELF_VAR              "cppSelf"
+#define PYTHON_ARG                "pyArg"
+#define PYTHON_ARGS               PYTHON_ARG"s"
+#define PYTHON_OVERRIDE_VAR       "pyOverride"
+#define PYTHON_RETURN_VAR         "pyResult"
+#define PYTHON_SELF_VAR           "self"
+#define THREAD_STATE_SAVER_VAR    "threadStateSaver"
 #define BEGIN_ALLOW_THREADS       "PyThreadState* _save = PyEval_SaveThread(); // Py_BEGIN_ALLOW_THREADS"
 #define END_ALLOW_THREADS         "PyEval_RestoreThread(_save); // Py_END_ALLOW_THREADS"
+#define MIN_CTOR_ERROR_MSG        "Could not find a minimal constructor for type '%1'. "\
+                                  "This will result in a compilation error."
 
 #include <generator.h>
 #include <QtCore/QTextStream>
@@ -297,7 +303,7 @@ public:
     QString cpythonSetattroFunctionName(const AbstractMetaClass* metaClass);
     QString cpythonGetterFunctionName(const AbstractMetaField* metaField);
     QString cpythonSetterFunctionName(const AbstractMetaField* metaField);
-    QString cpythonWrapperCPtr(const AbstractMetaClass* metaClass, QString argName = "self");
+    QString cpythonWrapperCPtr(const AbstractMetaClass* metaClass, QString argName = PYTHON_SELF_VAR);
     QString cpythonWrapperCPtr(const AbstractMetaType* metaType, QString argName);
     QString cpythonWrapperCPtr(const TypeEntry* type, QString argName);
 

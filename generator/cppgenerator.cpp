@@ -3778,6 +3778,7 @@ void CppGenerator::finishGeneration()
     moduleFileName += "/" + moduleName().toLower() + "_module_wrapper.cpp";
 
     QFile file(moduleFileName);
+    verifyDirectoryFor(file);
     if (!file.open(QFile::WriteOnly)) {
         ReportHandler::warning("Error writing file: " + moduleFileName);
         return;

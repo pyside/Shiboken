@@ -96,3 +96,16 @@ Modifications::sumPointArray(int arraySize, const Point pointArray[])
         point = point + pointArray[i];
     return point;
 }
+
+int
+Modifications::getSize(const void* data, int size)
+{
+    (void)data;
+    return size;
+}
+
+int
+Modifications::sumPointCoordinates(const Point* point)
+{
+    return point->x() + point->y();
+}

@@ -137,6 +137,22 @@
                 %PYARG_0 = %CONVERTTOPYTHON[int](%1 + %2);
             </inject-code>
         </add-function>
+        <add-function signature="passReferenceToValueType(Point&amp;)" return-type="double">
+            <inject-code>
+            double %0 = %1.x() + %1.y();
+            %PYARG_0 = %CONVERTTOPYTHON[double](%0);
+            </inject-code>
+        </add-function>
+
+        <!-- Do change the argument from pointer to reference to comply with the C++ overload
+             of this function. The generator must be able to deal with this for Object Types. -->
+        <add-function signature="passReferenceToObjectType(ObjectType*)" return-type="int">
+            <inject-code>
+            // The dot in "%1." must be replaced by a "->".
+            double %0 = %1.objectName().size();
+            %PYARG_0 = %CONVERTTOPYTHON[int](%0);
+            </inject-code>
+        </add-function>
     </namespace-type>
 
     <namespace-type name="RemovedNamespace1" generate='no'>
@@ -152,6 +168,13 @@
             <enum-type name="RemovedNamespace3_Enum" />
             <enum-type identified-by-value="RemovedNamespace3_AnonymousEnum_Value0" />
         </namespace-type>
+    </namespace-type>
+
+    <namespace-type name="Photon">
+        <enum-type name="ClassType"/>
+        <object-type name="TemplateBase" generate="no"/>
+        <object-type name="ValueIdentity"/>
+        <object-type name="ValueDuplicator"/>
     </namespace-type>
 
     <value-type name="IntList" />
@@ -281,6 +304,10 @@
             </modify-argument>
         </modify-function>
     </object-type>
+
+    <value-type name="ObjectTypeHolder"/>
+    <value-type name="OnlyCopy"/>
+    <value-type name="FriendOfOnlyCopy"/>
 
     <object-type name="ObjectModel">
         <enum-type name="MethodCalled" />
@@ -681,6 +708,26 @@
                 </conversion-rule>
             </modify-argument>
         </modify-function>
+        <modify-function signature="getSize(const void*,int)">
+            <modify-argument index="1">
+                <replace-type modified-type="ByteArray&amp;"/>
+            </modify-argument>
+            <modify-argument index="2">
+                <replace-default-expression with="-1"/>
+            </modify-argument>
+            <inject-code class="target" position="beginning">
+            int size = (%2 &lt; 0) ? %1.size() : %2;
+            %BEGIN_ALLOW_THREADS
+            %RETURN_TYPE %0 = %CPPSELF.%FUNCTION_NAME((const void*) %1.data(), size);
+            %END_ALLOW_THREADS
+            %PYARG_0 = %CONVERTTOPYTHON[%RETURN_TYPE](%0);
+            </inject-code>
+        </modify-function>
+        <modify-function signature="sumPointCoordinates(const Point*)">
+            <modify-argument index="1">
+                <no-null-pointer/>
+            </modify-argument>
+        </modify-function>
     </object-type>
 
     <object-type name="AbstractModifications">
@@ -817,9 +864,9 @@
         </modify-function>
         <template name="fix_int*,int*,int*,int*">
             int a0, a1, a2, a3;
-            PyThreadState* _save = PyEval_SaveThread(); // Py_BEGIN_ALLOW_THREADS
+            %BEGIN_ALLOW_THREADS
             %CPPSELF->::%TYPE::%FUNCTION_NAME(&amp;a0, &amp;a1, &amp;a2, &amp;a3);
-            PyEval_RestoreThread(_save); // Py_END_ALLOW_THREADS
+            %END_ALLOW_THREADS
             %PYARG_0 = Shiboken::makeTuple(a0, a1, a2, a3);
         </template>
         <template name="fix_native_return_int*,int*,int*,int*">
@@ -1357,10 +1404,10 @@
                 <insert-template name="buffer_argument">
                     <replace from="%out" to="argOut" />
                 </insert-template>
-                PyThreadState* _save = PyEval_SaveThread();
-                %RETURN_TYPE cppResult = %CPPSELF.%FUNCTION_NAME(argOut, %2);
-                PyEval_RestoreThread(_save);
-                %PYARG_0 = %CONVERTTOPYTHON[%RETURN_TYPE](cppResult);
+                %BEGIN_ALLOW_THREADS
+                %RETURN_TYPE %0 = %CPPSELF.%FUNCTION_NAME(argOut, %2);
+                %END_ALLOW_THREADS
+                %PYARG_0 = %CONVERTTOPYTHON[%RETURN_TYPE](%0);
             </inject-code>
         </add-function>
     </object-type>
@@ -1420,6 +1467,110 @@
                 <insert-template name="boolptr_fix_end"/>
             </inject-code>
         </modify-function>
+    </value-type>
+
+    <value-type name="ByteArray" hash-function="ByteArray::hash">
+        <conversion-rule file="bytearray_conversions.h"/>
+        <modify-function signature="ByteArray(const char*,int)" remove="all" />
+        <modify-function signature="ByteArray(const char*)">
+            <!-- Keep \x00 bytes passed in Python strings. -->
+            <modify-argument index="1">
+                <replace-type modified-type="PyString"/>
+            </modify-argument>
+            <inject-code class="target" position="beginning">
+            %0 = new %TYPE(PyString_AS_STRING(%PYARG_1), PyString_GET_SIZE(%PYARG_1));
+            </inject-code>
+        </modify-function>
+
+        <!-- buffer protocol -->
+        <inject-code class="native" position="beginning" file="bytearray_bufferprotocol.cpp" />
+        <inject-code class="target" position="end">
+        #if PY_VERSION_HEX &lt; 0x03000000
+            Shiboken::SbkType&lt;ByteArray&gt;()->tp_as_buffer = &amp;SbkByteArrayBufferProc;
+            Shiboken::SbkType&lt;ByteArray&gt;()->tp_flags |= Py_TPFLAGS_HAVE_GETCHARBUFFER;
+        #endif
+        </inject-code>
+
+        <modify-function signature="data() const">
+            <inject-code class="target" position="beginning">
+            %PYARG_0 = PyString_FromStringAndSize(%CPPSELF.%FUNCTION_NAME(), %CPPSELF.size());
+            </inject-code>
+        </modify-function>
+
+        <modify-function signature="hash(const ByteArray&amp;)" remove="all" />
+        <modify-function signature="append(const char*)" remove="all" />
+        <modify-function signature="append(const char*,int)" remove="all" />
+        <modify-function signature="operator==(const char*,ByteArray)" remove="all" />
+        <modify-function signature="operator==(ByteArray,const char*)" remove="all" />
+        <modify-function signature="operator!=(const char*,ByteArray)" remove="all" />
+        <modify-function signature="operator!=(ByteArray,const char*)" remove="all" />
+        <modify-function signature="operator+(ByteArray,const char*)" remove="all" />
+        <modify-function signature="operator+(const char*,ByteArray)" remove="all" />
+        <modify-function signature="operator+=(const char*)" remove="all" />
+        <modify-function signature="operator[](int)const" remove="all"/>
+
+        <add-function signature="operator+(PyUnicode)">
+            <inject-code>
+            Shiboken::AutoDecRef data(PyUnicode_AsASCIIString(%PYARG_1));
+            if (!data.isNull()) {
+                ByteArray ba(*%CPPSELF);
+                ba.append(PyString_AS_STRING(data.object()), PyString_GET_SIZE(data.object()));
+                %PYARG_0 = %CONVERTTOPYTHON[ByteArray](ba);
+            }
+            </inject-code>
+        </add-function>
+        <add-function signature="operator+(PyUnicode,ByteArray)">
+            <inject-code>
+            Shiboken::AutoDecRef data(PyUnicode_AsASCIIString(%PYARG_1));
+            if (!data.isNull()) {
+                ByteArray ba(PyString_AS_STRING(data.object()), PyString_GET_SIZE(data.object()));
+                ba.append(*%CPPSELF);
+                %PYARG_0 = %CONVERTTOPYTHON[ByteArray](ba);
+            }
+            </inject-code>
+        </add-function>
+        <add-function signature="operator+(PyString,ByteArray)">
+            <inject-code>
+            ByteArray ba(PyString_AS_STRING(%PYARG_1), PyString_GET_SIZE(%PYARG_1));
+            %PYARG_0 = %CONVERTTOPYTHON[ByteArray](ba + *%CPPSELF);
+            </inject-code>
+        </add-function>
+
+        <add-function signature="__repr__" return-type="PyObject*">
+            <inject-code class="target" position="beginning">
+            ByteArray ba(((PyObject*)%PYSELF)->ob_type->tp_name);
+            ba += '(';
+            Shiboken::AutoDecRef contents(PyObject_Repr(PyString_FromStringAndSize(%CPPSELF.data(), %CPPSELF.size())));
+            ba += PyString_AS_STRING(contents.object());
+            ba += ")";
+            %PYARG_0 = PyString_FromStringAndSize(ba.data(), ba.size());
+            </inject-code>
+        </add-function>
+
+        <add-function signature="__str__" return-type="PyString">
+            <inject-code class="target" position="beginning">
+            %PYARG_0 = PyString_FromStringAndSize(%CPPSELF.data(), %CPPSELF.size());
+            </inject-code>
+        </add-function>
+
+        <add-function signature="__len__">
+            <inject-code class="target" position="beginning">
+            return %CPPSELF.size();
+            </inject-code>
+        </add-function>
+        <add-function signature="__getitem__">
+            <inject-code class="target" position="beginning">
+            if (_i &lt; 0 || _i >= %CPPSELF.size()) {
+                PyErr_SetString(PyExc_IndexError, "index out of bounds");
+                return 0;
+            } else {
+                char res[2];
+                res[0] = %CPPSELF.at(_i);
+                res[1] = 0;
+                return PyString_FromStringAndSize(res, 1);
+            }
+            </inject-code>
+        </add-function>
     </value-type>
 
     <value-type name="StrList">
@@ -1607,5 +1758,7 @@
     <suppress-warning text="template baseclass 'std::list&lt;T>' of 'QList' is not known" />
     <suppress-warning text="template baseclass 'std::list&lt;Str>' of 'StrList' is not known" />
 
-</typesystem>
+    <!-- Do not fix this warning, the generator should be able to handle this situation for Object Types. -->
+    <suppress-warning text="Argument in position 1 of added function 'SampleNamespace::passReferenceToObjectType(ObjectType * arg__1)', has a type that is not a reference, while the argument in the corresponding position in C++ function 'SampleNamespace::passReferenceToObjectType(const ObjectType &amp; obj, int multiplier)' is a reference." />
 
+</typesystem>

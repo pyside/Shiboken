@@ -1469,16 +1469,30 @@ void CppGenerator::writeInvalidPyObjectCheck(QTextStream& s, const QString& pyOb
     s << INDENT << "return " << m_currentErrorCode << ';' << endl;
 }
 
-void CppGenerator::writeTypeCheck(QTextStream& s, const AbstractMetaType* argType, QString argumentName, bool isNumber, QString customType)
+void CppGenerator::writeTypeCheck(QTextStream& s, const AbstractMetaType* argType, QString argumentName, bool isNumber, QString customType, bool rejectNull)
 {
-    if (!customType.isEmpty())
-        s << guessCPythonCheckFunction(customType);
-    else if (argType->isEnum())
-        s << cpythonIsConvertibleFunction(argType, false);
-    else
-        s << cpythonIsConvertibleFunction(argType, isNumber);
+    AbstractMetaType* metaType;
+    std::auto_ptr<AbstractMetaType> metaType_autoptr;
+    QString customCheck;
+    if (!customType.isEmpty()) {
+        customCheck = guessCPythonCheckFunction(customType, &metaType);
+        if (metaType) {
+            metaType_autoptr = std::auto_ptr<AbstractMetaType>(metaType);
+            argType = metaType;
+        }
+    }
 
-    s << '(' << argumentName << ')';
+    QString typeCheck;
+    if (customCheck.isEmpty())
+        typeCheck = cpythonIsConvertibleFunction(argType, argType->isEnum() ? false : isNumber);
+    else
+        typeCheck = customCheck;
+    typeCheck.append(QString("(%1)").arg(argumentName));
+
+    if (rejectNull)
+        typeCheck = QString("(%1 != Py_None && %2)").arg(argumentName).arg(typeCheck);
+
+    s << typeCheck;
 }
 
 void CppGenerator::writeTypeCheck(QTextStream& s, const OverloadData* overloadData, QString argumentName)
@@ -1501,7 +1515,8 @@ void CppGenerator::writeTypeCheck(QTextStream& s, const OverloadData* overloadDa
     const AbstractMetaType* argType = overloadData->argType();
     bool numberType = numericTypes.count() == 1 || ShibokenGenerator::isPyInt(argType);
     QString customType = (overloadData->hasArgumentTypeReplace() ? overloadData->argumentTypeReplaced() : "");
-    writeTypeCheck(s, argType, argumentName, numberType, customType);
+    bool rejectNull = shouldRejectNullPointerArgument(overloadData->referenceFunction(), overloadData->argPos());
+    writeTypeCheck(s, argType, argumentName, numberType, customType, rejectNull);
 }
 
 void CppGenerator::writeArgumentConversion(QTextStream& s,
@@ -2877,7 +2892,7 @@ void CppGenerator::writeGetterFunction(QTextStream& s, const AbstractMetaField* 
 
     s << INDENT << "PyObject* value = ";
     if (newWrapperSameObject) {
-        s << "Shiboken::Object::newObject((SbkObjectType*)" << cpythonTypeNameExt(fieldType->typeEntry());
+        s << "Shiboken::Object::newObject((SbkObjectType*)" << cpythonTypeNameExt(fieldType);
         s << ", " << cppField << ", false, true);" << endl;
         s << INDENT << "Shiboken::Object::setParent(" PYTHON_SELF_VAR ", value)";
     } else {
@@ -3014,15 +3029,16 @@ void CppGenerator::writeRichCompareFunction(QTextStream& s, const AbstractMetaCl
                         QString expression = QString("%1%2 %3 " CPP_ARG0)
                                                 .arg(func->isPointerOperator() ? "&" : "")
                                                 .arg(CPP_SELF_VAR).arg(op);
+                        s << INDENT;
+                        if (func->type())
+                            s << func->type()->cppSignature() << " " CPP_RETURN_VAR " = ";
+                        s << expression << ';' << endl;
                         s << INDENT << PYTHON_RETURN_VAR " = ";
-                        if (!func->type()) {
-                            s << "Py_None;" << endl;
-                            s << INDENT << "Py_INCREF(Py_None);" << endl;
-                            s << INDENT << expression << "; // This operator returns void." << endl;
-                        } else {
-                            writeToPythonConversion(s, func->type(), metaClass, expression);
-                            s << ';' << endl;
-                        }
+                        if (func->type())
+                            writeToPythonConversion(s, func->type(), metaClass, CPP_RETURN_VAR);
+                        else
+                            s << "Py_None;" << endl << INDENT << "Py_INCREF(Py_None)";
+                        s << ';' << endl;
                     }
                 }
                 s << INDENT << '}';

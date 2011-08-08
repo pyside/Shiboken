@@ -114,9 +114,11 @@ public:
     QString functionReturnType(const AbstractMetaFunction* func, Options options = NoOption) const;
 
     /// Utility function for writeCodeSnips.
-    static QMap<int, QString> getArgumentReplacement(const AbstractMetaFunction* func,
-                                                     bool usePyArgs, TypeSystem::Language language,
-                                                     const AbstractMetaArgument* lastArg);
+    typedef QPair<const AbstractMetaArgument*, QString> ArgumentVarReplacementPair;
+    typedef QList<ArgumentVarReplacementPair> ArgumentVarReplacementList;
+    ArgumentVarReplacementList getArgumentReplacement(const AbstractMetaFunction* func,
+                                                      bool usePyArgs, TypeSystem::Language language,
+                                                      const AbstractMetaArgument* lastArg);
 
     /// Write user's custom code snippets at class or module level.
     void writeCodeSnips(QTextStream& s,
@@ -232,6 +234,9 @@ public:
                               const AbstractMetaClass* context, const QString& argumentName, Options options = NoOption);
     void writeToCppConversion(QTextStream& s, const AbstractMetaClass* metaClass, const QString& argumentName);
 
+    /// Returns true if the argument is a pointer that rejects NULL values.
+    static bool shouldRejectNullPointerArgument(const AbstractMetaFunction* func, int argIndex);
+
     /// Verifies if the class should have a C++ wrapper generated for it, instead of only a Python wrapper.
     bool shouldGenerateCppWrapper(const AbstractMetaClass* metaClass) const;
 
@@ -292,9 +297,20 @@ public:
     QString cpythonTypeName(const AbstractMetaClass* metaClass);
     QString cpythonTypeName(const TypeEntry* type);
     QString cpythonTypeNameExt(const TypeEntry* type);
+    QString cpythonTypeNameExt(const AbstractMetaType* type);
     QString cpythonCheckFunction(const TypeEntry* type, bool genericNumberType = false);
     QString cpythonCheckFunction(const AbstractMetaType* metaType, bool genericNumberType = false);
-    QString guessCPythonCheckFunction(const QString& type);
+    /**
+     *  Receives the argument \p type and tries to find the appropriate AbstractMetaType for it
+     *  or a custom type check.
+     *  \param type     A string representing the type to be discovered.
+     *  \param metaType A pointer to an AbstractMetaType pointer, to where write a new meta type object
+     *                  if one is produced from the \p type string. This object must be deallocated by
+     *                  the caller. It will set the target variable to NULL, is \p type is a Python type.
+     *  \return A custom check if \p type is a custom type, or an empty string if \p metaType
+     *          receives an existing type object.
+     */
+    QString guessCPythonCheckFunction(const QString& type, AbstractMetaType** metaType);
     QString cpythonIsConvertibleFunction(const TypeEntry* type, bool genericNumberType = false, bool checkExact = false);
     QString cpythonIsConvertibleFunction(const AbstractMetaType* metaType, bool genericNumberType = false);
     QString cpythonIsConvertibleFunction(const AbstractMetaArgument* metaArg, bool genericNumberType = false)
@@ -355,7 +371,15 @@ public:
     /// Returns true if the generated code should use the "#define protected public" hack.
     bool avoidProtectedHack() const;
     QString cppApiVariableName(const QString& moduleName = QString()) const;
+    /**
+     *  Returns the type index variable name for a given class. If \p alternativeTemplateName is true
+     *  and the class is a typedef for a template class instantiation, it will return an alternative name
+     *  made of the template class and the instantiation values, or an empty string if the class isn't
+     *  derived from a template class at all.
+     */
+    QString getTypeIndexVariableName(const AbstractMetaClass* metaClass, bool alternativeTemplateName = false);
     QString getTypeIndexVariableName(const TypeEntry* type);
+    QString getTypeIndexVariableName(const AbstractMetaType* type);
     /// Returns true if the user don't want verbose error messages on the generated bindings.
     bool verboseErrorMessagesDisabled() const;
 

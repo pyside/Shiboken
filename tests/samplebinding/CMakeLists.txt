@@ -14,6 +14,7 @@ ${CMAKE_CURRENT_BINARY_DIR}/sample/base4_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/base5_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/base6_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/blackbox_wrapper.cpp
+${CMAKE_CURRENT_BINARY_DIR}/sample/bytearray_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/bucket_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/collector_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/color_wrapper.cpp
@@ -24,6 +25,7 @@ ${CMAKE_CURRENT_BINARY_DIR}/sample/derived_someinnerclass_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/echo_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/event_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/expression_wrapper.cpp
+${CMAKE_CURRENT_BINARY_DIR}/sample/friendofonlycopy_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/handleholder_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/implicitconv_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/implicitbase_wrapper.cpp
@@ -46,16 +48,21 @@ ${CMAKE_CURRENT_BINARY_DIR}/sample/noimplicitconversion_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/nondefaultctor_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/objectmodel_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/objecttype_wrapper.cpp
+${CMAKE_CURRENT_BINARY_DIR}/sample/objecttypeholder_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/objecttypelayout_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/objecttypeoperators_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/objectview_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/objtypereference_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/oddbooluser_wrapper.cpp
+${CMAKE_CURRENT_BINARY_DIR}/sample/onlycopy_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/overload_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/overload2_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/pairuser_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/pen_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/persistentmodelindex_wrapper.cpp
+${CMAKE_CURRENT_BINARY_DIR}/sample/photon_wrapper.cpp
+${CMAKE_CURRENT_BINARY_DIR}/sample/photon_valueidentity_wrapper.cpp
+${CMAKE_CURRENT_BINARY_DIR}/sample/photon_valueduplicator_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/point_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/pointf_wrapper.cpp
 ${CMAKE_CURRENT_BINARY_DIR}/sample/pointerholder_wrapper.cpp

@@ -3,9 +3,11 @@ project(libsample)
 set(libsample_SRC
 abstract.cpp
 blackbox.cpp
+bytearray.cpp
 bucket.cpp
 collector.cpp
 complex.cpp
+onlycopy.cpp
 derived.cpp
 echo.cpp
 functions.cpp
@@ -18,12 +20,14 @@ modified_constructor.cpp
 multiple_derived.cpp
 objectmodel.cpp
 objecttype.cpp
+objecttypeholder.cpp
 objecttypelayout.cpp
 objecttypeoperators.cpp
 objectview.cpp
 overload.cpp
 overloadsort.cpp
 pairuser.cpp
+photon.cpp
 point.cpp
 pointf.cpp
 polygon.cpp

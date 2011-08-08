@@ -28,7 +28,7 @@
 
 import unittest
 
-from sample import Modifications, Point
+from sample import Modifications, Point, ByteArray
 
 class ExtModifications(Modifications):
     def __init__(self):
@@ -137,6 +137,16 @@ class ModificationsTest(unittest.TestCase):
         points = (Point(1, 1), Point(2, 2))
         summedPoint = Point(1, 1) + Point(2, 2)
         self.assertEqual(self.mods.sumPointArray(points), summedPoint)
+
+    def testTypeSystemVariableReplacementInFunctionModification(self):
+        ba = ByteArray('12345')
+        self.assertEqual(self.mods.getSize(ba), len(ba))
+        self.assertEqual(self.mods.getSize(ba, 20), 20)
+
+    def testNoNulPointerTag(self):
+        point = Point(12, 34)
+        self.assertEqual(self.mods.sumPointCoordinates(point), 12 + 34)
+        self.assertRaises(TypeError, self.mods.sumPointCoordinates, None)
 
 if __name__ == '__main__':
     unittest.main()

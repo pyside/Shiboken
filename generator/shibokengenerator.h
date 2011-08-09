@@ -54,6 +54,7 @@ class ShibokenGenerator : public Generator
 {
 public:
     ShibokenGenerator();
+    virtual ~ShibokenGenerator();
 
     QString translateTypeForWrapperMethod(const AbstractMetaType* cType,
                                           const AbstractMetaClass* context, Options opt = NoOption) const;
@@ -141,16 +142,25 @@ public:
     void processCodeSnip(QString& code, const AbstractMetaClass* context = 0);
 
     /// Replaces the %CONVERTTOPYTHON type system variable.
-    void replaceConvertToPythonTypeSystemVariable(QString& code);
-
+    inline void replaceConvertToPythonTypeSystemVariable(QString& code)
+    {
+        replaceConverterTypeSystemVariable(TypeSystemToPythonFunction, code);
+    }
     /// Replaces the %CONVERTTOCPP type system variable.
-    void replaceConvertToCppTypeSystemVariable(QString& code);
-
+    inline void replaceConvertToCppTypeSystemVariable(QString& code)
+    {
+        replaceConverterTypeSystemVariable(TypeSystemToCppFunction, code);
+    }
     /// Replaces the %ISCONVERTIBLE type system variable.
-    void replaceConvertibleToCppTypeSystemVariable(QString& code);
-
+    inline void replaceIsConvertibleToCppTypeSystemVariable(QString& code)
+    {
+        replaceConverterTypeSystemVariable(TypeSystemIsConvertibleFunction, code);
+    }
     /// Replaces the %CHECKTYPE type system variable.
-    void replaceTypeCheckTypeSystemVariable(QString& code);
+    inline void replaceTypeCheckTypeSystemVariable(QString& code)
+    {
+        replaceConverterTypeSystemVariable(TypeSystemCheckFunction, code);
+    }
 
     /**
      *   Verifies if any of the function's code injections of the "target"
@@ -225,13 +235,12 @@ public:
     const AbstractMetaClass* getMultipleInheritingClass(const AbstractMetaClass* metaClass);
 
     void writeBaseConversion(QTextStream& s, const AbstractMetaType* type,
-                             const AbstractMetaClass* context, Options options = NoOption);
+                             const AbstractMetaClass* context = 0, Options options = NoOption);
     /// Simpler version of writeBaseConversion, uses only the base name of the type.
     void writeBaseConversion(QTextStream& s, const TypeEntry* type);
     void writeToPythonConversion(QTextStream& s, const AbstractMetaType* type,
-                                 const AbstractMetaClass* context, const QString& argumentName = QString());
-    void writeToCppConversion(QTextStream& s, const AbstractMetaType* type,
-                              const AbstractMetaClass* context, const QString& argumentName, Options options = NoOption);
+                                 const AbstractMetaClass* context, const QString& argumentName);
+    void writeToCppConversion(QTextStream& s, const AbstractMetaType* type, const AbstractMetaClass* context, const QString& argumentName);
     void writeToCppConversion(QTextStream& s, const AbstractMetaClass* metaClass, const QString& argumentName);
 
     /// Returns true if the argument is a pointer that rejects NULL values.
@@ -318,6 +327,11 @@ public:
         return cpythonIsConvertibleFunction(metaArg->type(), genericNumberType);
     }
     QString guessCPythonIsConvertible(const QString& type);
+
+    QString cpythonToCppConversionFunction(const AbstractMetaClass* metaClass);
+    QString cpythonToCppConversionFunction(const AbstractMetaType* type, const AbstractMetaClass* context = 0);
+    QString cpythonToPythonConversionFunction(const AbstractMetaType* type, const AbstractMetaClass* context = 0);
+
     QString cpythonFunctionName(const AbstractMetaFunction* func);
     QString cpythonMethodDefinitionName(const AbstractMetaFunction* func);
     QString cpythonGettersSettersDefinitionName(const AbstractMetaClass* metaClass);
@@ -386,10 +400,10 @@ public:
     /**
      *   Builds an AbstractMetaType object from a QString.
      *   Returns NULL if no type could be built from the string.
-     *   \param typeString The string describing the type to be built.
+     *   \param typeSignature The string describing the type to be built.
      *   \return A new AbstractMetaType object that must be deleted by the caller, or a NULL pointer in case of failure.
      */
-    AbstractMetaType* buildAbstractMetaTypeFromString(QString typeString);
+    AbstractMetaType* buildAbstractMetaTypeFromString(QString typeSignature);
 
     /**
      *  Helper function to return the flags to be used by a meta type when
@@ -438,6 +452,16 @@ protected:
     static bool pythonFunctionWrapperUsesListOfArguments(const OverloadData& overloadData);
 
     Indentor INDENT;
+
+    enum TypeSystemConverterVariable {
+        TypeSystemCheckFunction = 0,
+        TypeSystemIsConvertibleFunction,
+        TypeSystemToCppFunction,
+        TypeSystemToPythonFunction,
+        TypeSystemConverterVariables
+    };
+    void replaceConverterTypeSystemVariable(TypeSystemConverterVariable converterVariable, QString& code);
+
 private:
     bool m_useCtorHeuristic;
     bool m_userReturnValueHeuristic;
@@ -445,8 +469,13 @@ private:
     bool m_verboseErrorMessagesDisabled;
     bool m_useIsNullAsNbNonZero;
     bool m_avoidProtectedHack;
+
+    typedef QHash<QString, AbstractMetaType*> AbstractMetaTypeCache;
+    AbstractMetaTypeCache m_metaTypeFromStringCache;
+
+    /// Type system converter variable replacement names and regular expressions.
+    QString m_typeSystemConvName[TypeSystemConverterVariables];
+    QRegExp m_typeSystemConvRegEx[TypeSystemConverterVariables];
 };
 
-
 #endif // SHIBOKENGENERATOR_H
-

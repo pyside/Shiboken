@@ -764,7 +764,8 @@ void getOwnership(SbkObject* self)
 
 void getOwnership(PyObject* pyObj)
 {
-    setSequenceOwnership(pyObj, true);
+    if (pyObj)
+        setSequenceOwnership(pyObj, true);
 }
 
 void releaseOwnership(SbkObject* self)

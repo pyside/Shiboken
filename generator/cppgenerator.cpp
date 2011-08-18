@@ -814,7 +814,7 @@ void CppGenerator::writeVirtualMethodNative(QTextStream&s, const AbstractMetaFun
 
             if (!func->conversionRule(TypeSystem::NativeCode, 0).isEmpty()) {
                 // Has conversion rule.
-                writeConversionRule(s, func, CPP_RETURN_VAR);
+                writeConversionRule(s, func, TypeSystem::NativeCode, CPP_RETURN_VAR);
             } else if (!injectedCodeHasReturnValueAttribution(func, TypeSystem::NativeCode)) {
                 writePythonToCppTypeConversion(s, func->type(), PYTHON_RETURN_VAR, CPP_RETURN_VAR, func->implementingClass());
             }
@@ -1617,12 +1617,12 @@ void CppGenerator::writeConversionRule(QTextStream& s, const AbstractMetaFunctio
     writeCodeSnips(s, snippets, CodeSnip::Beginning, TypeSystem::TargetLangCode, func);
 }
 
-void CppGenerator::writeConversionRule(QTextStream& s, const AbstractMetaFunction* func, const QString& outputVar)
+void CppGenerator::writeConversionRule(QTextStream& s, const AbstractMetaFunction* func, TypeSystem::Language language, const QString& outputVar)
 {
     CodeSnipList snippets;
-    QString rule = func->conversionRule(TypeSystem::NativeCode, 0);
-    addConversionRuleCodeSnippet(snippets, rule, TypeSystem::NativeCode, TypeSystem::NativeCode, outputVar);
-    writeCodeSnips(s, snippets, CodeSnip::Any, TypeSystem::NativeCode, func);
+    QString rule = func->conversionRule(language, 0);
+    addConversionRuleCodeSnippet(snippets, rule, language, language, outputVar);
+    writeCodeSnips(s, snippets, CodeSnip::Any, language, func);
 }
 
 void CppGenerator::writeNoneReturn(QTextStream& s, const AbstractMetaFunction* func, bool thereIsReturnValue)
@@ -2217,7 +2217,9 @@ void CppGenerator::writeMethodCall(QTextStream& s, const AbstractMetaFunction* f
             s << methodCall << ';' << endl;
             s << INDENT << END_ALLOW_THREADS << endl;
 
-            if (!isCtor && !func->isInplaceOperator() && func->type()
+            if (!func->conversionRule(TypeSystem::TargetLangCode, 0).isEmpty()) {
+                writeConversionRule(s, func, TypeSystem::TargetLangCode, PYTHON_RETURN_VAR);
+            } else if (!isCtor && !func->isInplaceOperator() && func->type()
                 && !injectedCodeHasReturnValueAttribution(func, TypeSystem::TargetLangCode)) {
                 s << INDENT << PYTHON_RETURN_VAR " = ";
                 writeToPythonConversion(s, func->type(), func->ownerClass(), CPP_RETURN_VAR);
@@ -2833,18 +2835,14 @@ void CppGenerator::writeTpClearFunction(QTextStream& s, const AbstractMetaClass*
     s << '}' << endl;
 }
 
-void CppGenerator::writeCopyFunction(QTextStream& s, const AbstractMetaClass *metaClass)
+void CppGenerator::writeCopyFunction(QTextStream& s, const AbstractMetaClass* metaClass)
 {
     QString className = cpythonTypeName(metaClass).replace(QRegExp("_Type$"), "");
     s << "static PyObject* " << className << "___copy__(PyObject* " PYTHON_SELF_VAR ")" << endl;
     s << "{" << endl;
-
-    writeCppSelfDefinition(s, metaClass);
-
-    s << INDENT << "PyObject* " << PYTHON_RETURN_VAR << " = ";
-    s << "Shiboken::Converter< ::" << metaClass->qualifiedCppName() << " >::toPython(*";
-    s << CPP_SELF_VAR << ");" << endl;
-    s << endl;
+    writeCppSelfDefinition(s, metaClass, false, true);
+    s << INDENT << "PyObject* " << PYTHON_RETURN_VAR << " = " << cpythonToPythonConversionFunction(metaClass);
+    s << "(" CPP_SELF_VAR ");" << endl;
     writeFunctionReturnErrorCheckSection(s);
     s << INDENT << "return " PYTHON_RETURN_VAR ";" << endl;
     s << "}" << endl;
@@ -4159,35 +4157,32 @@ QString CppGenerator::writeReprFunction(QTextStream& s, const AbstractMetaClass*
     QString funcName = cpythonBaseName(metaClass) + "__repr__";
     s << "extern \"C\"" << endl;
     s << '{' << endl;
-    s << "static PyObject* " << funcName << "(PyObject* pyObj)" << endl;
+    s << "static PyObject* " << funcName << "(PyObject* self)" << endl;
     s << '{' << endl;
+    writeCppSelfDefinition(s, metaClass);
     s << INDENT << "QBuffer buffer;" << endl;
     s << INDENT << "buffer.open(QBuffer::ReadWrite);" << endl;
     s << INDENT << "QDebug dbg(&buffer);" << endl;
-    s << INDENT << "dbg << ";
-    writeToCppConversion(s, metaClass, "pyObj");
-    s << ';' << endl;
+    s << INDENT << "dbg << " CPP_SELF_VAR ";" << endl;
     s << INDENT << "buffer.close();" << endl;
     s << INDENT << "QByteArray str = buffer.data();" << endl;
     s << INDENT << "int idx = str.indexOf('(');" << endl;
     s << INDENT << "if (idx >= 0)" << endl;
     {
         Indentation indent(INDENT);
-        s << INDENT << "str.replace(0, idx, Py_TYPE(pyObj)->tp_name);" << endl;
+        s << INDENT << "str.replace(0, idx, Py_TYPE(self)->tp_name);" << endl;
     }
-
-    s << INDENT << "PyObject* mod = PyDict_GetItemString(Py_TYPE(pyObj)->tp_dict, \"__module__\");" << endl;
+    s << INDENT << "PyObject* mod = PyDict_GetItemString(Py_TYPE(self)->tp_dict, \"__module__\");" << endl;
     s << INDENT << "if (mod)" << endl;
     {
         Indentation indent(INDENT);
-        s << INDENT << "return PyString_FromFormat(\"<%s.%s at %p>\", PyString_AS_STRING(mod), str.constData(), pyObj);" << endl;
+        s << INDENT << "return PyString_FromFormat(\"<%s.%s at %p>\", PyString_AS_STRING(mod), str.constData(), self);" << endl;
     }
     s << INDENT << "else" << endl;
     {
         Indentation indent(INDENT);
-        s << INDENT << "return PyString_FromFormat(\"<%s at %p>\", str.constData(), pyObj);" << endl;
+        s << INDENT << "return PyString_FromFormat(\"<%s at %p>\", str.constData(), self);" << endl;
     }
-
     s << '}' << endl;
     s << "} // extern C" << endl << endl;;
     return funcName;

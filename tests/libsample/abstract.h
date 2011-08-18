@@ -25,6 +25,7 @@
 
 #include "libsamplemacros.h"
 #include "point.h"
+#include "complex.h"
 
 class ObjectType;
 
@@ -57,6 +58,7 @@ public:
 
     static const int staticPrimitiveField;
     int primitiveField;
+    Complex userPrimitiveField;
     Point valueTypeField;
     ObjectType* objectTypeField;
 
@@ -90,8 +92,10 @@ public:
 protected:
     virtual const char* className() { return "Abstract"; }
 
+    // Protected bit-field structure member.
+    unsigned int bitField: 1;
+
 private:
     int m_id;
 };
 #endif // ABSTRACT_H
-

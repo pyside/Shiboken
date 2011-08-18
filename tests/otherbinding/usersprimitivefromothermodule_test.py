@@ -24,28 +24,24 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 # 02110-1301 USA
 
+'''Tests user defined primitive type from a required module.'''
+
 import unittest
+from other import Number
 
-from sample import SizeF
+class UserDefinedPrimitiveTypeFromRequiredModuleTest(unittest.TestCase):
 
-class NumericalTypedefTest(unittest.TestCase):
+    def testUsersPrimitiveFromRequiredModuleAsArgument(self):
+        '''static Number Number::fromComplex(Complex)'''
+        cpx = complex(3.0, 1.2)
+        number = Number.fromComplex(cpx)
+        self.assertEqual(number.value(), int(cpx.real))
 
-    def testNumericalTypedefExact(self):
-        width, height = (1.1, 2.2)
-        size = SizeF(width, height)
-        self.assertEqual(size.width(), width)
-        self.assertEqual(size.height(), height)
-
-    def testNumericalTypedefConvertible(self):
-        width, height = (1, 2)
-        size = SizeF(width, height)
-        self.assertEqual(size.width(), float(width))
-        self.assertEqual(size.height(), float(height))
-
-    def testNumericalTypedefOfUnsignedShort(self):
-        self.assertEqual(SizeF.passTypedefOfUnsignedShort(123), 123)
-        self.assertEqual(SizeF.passTypedefOfUnsignedShort(321), 321)
-        self.assertNotEqual(SizeF.passTypedefOfUnsignedShort(123), 0)
+    def testUsersPrimitiveFromRequiredModuleAsReturnValue(self):
+        '''Complex Number::toComplex()'''
+        number = Number(12)
+        cpx = number.toComplex()
+        self.assertEqual(number.value(), int(cpx.real))
 
 if __name__ == '__main__':
     unittest.main()

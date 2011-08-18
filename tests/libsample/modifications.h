@@ -26,6 +26,7 @@
 #include "libsamplemacros.h"
 #include <utility>
 #include "point.h"
+#include "oddbool.h"
 
 class ObjectType;
 
@@ -105,9 +106,16 @@ public:
     // the test implementation must expect point never to be null.
     int sumPointCoordinates(const Point* point);
 
+    // Modify the return value of a virtual method.
+    virtual double differenceOfPointCoordinates(const Point* pt, bool* ok);
+    double callDifferenceOfPointCoordinates(const Point* pt, bool* ok) { return differenceOfPointCoordinates(pt, ok); }
+
     // Sets an ObjectType in the argument and returns true.
     bool nonConversionRuleForArgumentWithDefaultValue(ObjectType** object = 0);
     ObjectType* getObject() const { return m_object; }
+
+    // Inject code with a %CONVERTTOPYTHON that receives an user's primitive type.
+    static inline OddBool passOddBool(OddBool ob) { return ob; }
 
 private:
     ObjectType* m_object;

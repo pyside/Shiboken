@@ -8,6 +8,8 @@
     <primitive-type name="real"/>
     <primitive-type name="int"/>
     <primitive-type name="short"/>
+    <primitive-type name="unsigned short"/>
+    <primitive-type name="ushort"/>
     <primitive-type name="unsigned int" />
     <primitive-type name="signed int" />
     <primitive-type name="char"/>
@@ -151,7 +153,7 @@
         <add-function signature="passReferenceToObjectType(ObjectType*)" return-type="int">
             <inject-code>
             // The dot in "%1." must be replaced with a "->" by the generator.
-            double %0 = %1.objectName().size();
+            %RETURN_TYPE %0 = %1.objectName().size();
             %PYARG_0 = %CONVERTTOPYTHON[%RETURN_TYPE](%0);
             </inject-code>
         </add-function>
@@ -729,6 +731,49 @@
                 <no-null-pointer/>
             </modify-argument>
         </modify-function>
+        <template name="differenceOfPointCoordinates_arg2">
+        bool _status;
+        bool* %2 = &amp;_status;
+        </template>
+        <template name="differenceOfPointCoordinates_returnTarget">
+        %PYARG_0 = PyTuple_New(2);
+        PyTuple_SET_ITEM(%PYARG_0, 0, %CONVERTTOPYTHON[bool](*%2));
+        PyTuple_SET_ITEM(%PYARG_0, 1, %CONVERTTOPYTHON[%RETURN_TYPE](%0));
+        </template>
+        <modify-function signature="differenceOfPointCoordinates(const Point*, bool*)">
+            <modify-argument index="2">
+                <remove-argument/>
+                <conversion-rule class="native">
+                    <insert-template name="differenceOfPointCoordinates_arg2"/>
+                </conversion-rule>
+            </modify-argument>
+            <modify-argument index="return">
+                <replace-type modified-type="PySequence"/>
+                <conversion-rule class="native">
+                Shiboken::AutoDecRef _py_ok_(PySequence_GetItem(%PYARG_0, 0));
+                Shiboken::AutoDecRef _py_ret_(PySequence_GetItem(%PYARG_0, 1));
+                *%2 = %CONVERTTOCPP[bool](_py_ok_);
+                %RETURN_TYPE %out = %CONVERTTOCPP[%RETURN_TYPE](_py_ret_);
+                </conversion-rule>
+                <conversion-rule class="target">
+                    <insert-template name="differenceOfPointCoordinates_returnTarget"/>
+                </conversion-rule>
+            </modify-argument>
+        </modify-function>
+        <modify-function signature="callDifferenceOfPointCoordinates(const Point*, bool*)">
+            <modify-argument index="2">
+                <remove-argument/>
+                <conversion-rule class="native">
+                    <insert-template name="differenceOfPointCoordinates_arg2"/>
+                </conversion-rule>
+            </modify-argument>
+            <modify-argument index="return">
+                <replace-type modified-type="PySequence"/>
+                <conversion-rule class="target">
+                    <insert-template name="differenceOfPointCoordinates_returnTarget"/>
+                </conversion-rule>
+            </modify-argument>
+        </modify-function>
         <modify-function signature="nonConversionRuleForArgumentWithDefaultValue(ObjectType**)">
           <modify-argument index="1">
             <remove-argument/>
@@ -740,6 +785,12 @@
           ObjectType* tmpObject = 0;
           %RETURN_TYPE %0 = %CPPSELF.%FUNCTION_NAME(&amp;tmpObject);
           %PYARG_0 = Shiboken::makeTuple(%0, tmpObject);
+          </inject-code>
+        </modify-function>
+        <modify-function signature="passOddBool(OddBool)" rename="invertBoolean">
+          <inject-code class="target" position="beginning">
+          %RETURN_TYPE %0 = !%CPPSELF.%FUNCTION_NAME(%1);
+          %PYARG_0 = %CONVERTTOPYTHON[OddBool](%0);
           </inject-code>
         </modify-function>
     </object-type>

@@ -52,7 +52,6 @@ install(FILES
         helper.h
         sbkenum.h
         sbkmodule.h
-        python25compat.h
         sbkdbg.h
         shiboken.h
         shibokenmacros.h

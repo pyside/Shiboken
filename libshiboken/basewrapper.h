@@ -24,7 +24,6 @@
 #define BASEWRAPPER_H
 
 #include <Python.h>
-#include "python25compat.h"
 #include "bindingmanager.h"
 #include <list>
 #include <map>

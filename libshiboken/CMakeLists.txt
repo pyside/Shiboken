@@ -27,6 +27,7 @@ gilstate.cpp
 helper.cpp
 sbkenum.cpp
 sbkmodule.cpp
+sbkstring.cpp
 bindingmanager.cpp
 threadstatesaver.cpp
 typeresolver.cpp
@@ -53,6 +54,7 @@ install(FILES
         sbkenum.h
         sbkmodule.h
         sbkdbg.h
+        sbkstring.h
         shiboken.h
         shibokenmacros.h
         threadstatesaver.h

@@ -28,14 +28,30 @@ namespace Shiboken
 namespace String
 {
 
+bool checkType(PyTypeObject* type)
+{
+    return type == &PyUnicode_Type
+#if PY_MAJOR_VERSION < 3
+            || type == &PyString_Type
+#endif
+    ;
+}
+
 bool check(PyObject* obj)
 {
     return obj == Py_None ||
-#if PY_MAJOR_VERSION >= 3
-        PyUnicode_Check(obj);
-#else
-        PyString_Check(obj);
+#if PY_MAJOR_VERSION < 3
+        PyString_Check(obj) ||
 #endif
+        PyUnicode_Check(obj);
+}
+
+bool checkChar(PyObject* pyobj)
+{
+    if (check(pyobj) && (len(pyobj) == 1))
+        return true;
+
+    return false;
 }
 
 bool convertible(PyObject* obj)
@@ -54,23 +70,40 @@ PyObject* fromCString(const char* value)
 
 const char* toCString(PyObject* str)
 {
+    if (str == Py_None)
+        return NULL;
 #if PY_MAJOR_VERSION >= 3
-    return _PyUnicode_AsString(str);
+    if (PyUnicode_Check(str))
+        return _PyUnicode_AsString(str);
 #else
-    return PyBytes_AS_STRING(str);
+    if (PyString_Check(str))
+        return PyString_AS_STRING(str);
 #endif
+    if (PyBytes_Check(str))
+        return PyBytes_AsString(str);
 }
 
 bool concat(PyObject** val1, PyObject* val2)
 {
-#if PY_MAJOR_VERSION >= 3
-    PyObject* result = PyUnicode_Concat(*val1, val2);
-    Py_DECREF(*val1);
-    *val1 = result;
-    return true;
-#else
-    return false;
+    if (PyUnicode_Check(*val1) && PyUnicode_Check(val2)) {
+        PyObject* result = PyUnicode_Concat(*val1, val2);
+        Py_DECREF(*val1);
+        *val1 = result;
+        return true;
+    }
+
+    if (PyBytes_Check(*val1) && PyBytes_Check(val2)) {
+        PyBytes_Concat(val1, val2);
+        return true;
+    }
+
+#if PY_MAJOR_VERSION < 3
+    if (PyString_Check(*val1) && PyString_Check(val2)) {
+        PyString_Concat(val1, val2);
+        return true;
+    }
 #endif
+    return false;
 }
 
 PyObject* fromFormat(const char* format, ...)
@@ -98,21 +131,40 @@ PyObject* fromStringAndSize(const char* str, Py_ssize_t size)
 
 int compare(PyObject* val1, const char* val2)
 {
+    if (PyUnicode_Check(val1))
 #if PY_MAJOR_VERSION >= 3
-    return PyUnicode_CompareWithASCIIString(val1, val2);
+       return PyUnicode_CompareWithASCIIString(val1, val2);
 #else
-    return strcmp(PyString_AS_STRING(X), Y);
+    {
+        PyObject* uVal2 = PyUnicode_FromFormat("%s", val2);
+        bool result =  PyUnicode_Compare(val1, uVal2);
+        Py_XDECREF(uVal2);
+        return result;
+    }
+    if (PyString_Check(val1))
+        return strcmp(PyString_AS_STRING(val1), val2);
 #endif
+    return 0;
+
 }
 
 Py_ssize_t len(PyObject* str)
 {
-#if PY_MAJOR_VERSION >= 3
-    return PyUnicode_GET_SIZE(str);
-#else
-    return PyString_GET_SIZE(str);
+    if (str == Py_None)
+        return 0;
+
+    if (PyUnicode_Check(str))
+        return PyUnicode_GET_SIZE(str);
+
+    if (PyBytes_Check(str))
+        return PyBytes_GET_SIZE(str);
+
+#if PY_MAJOR_VERSION < 3
+    if (PyString_Check(str))
+        return PyString_GET_SIZE(str);
 #endif
 
+    return 0;
 }
 
 } // namespace String

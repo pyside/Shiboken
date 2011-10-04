@@ -38,6 +38,7 @@
 
     #define SBK_NB_BOOL(x) (x).nb_bool
     #define SBK_PyMethod_New PyMethod_New
+    #define PyInt_AsSsize_t(x)  PyLong_AsSsize_t(x)
 
 #else
     // Note: if there wasn't for the old-style classes, only a PyNumber_Check would suffice.

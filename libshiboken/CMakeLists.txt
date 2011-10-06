@@ -27,6 +27,7 @@ gilstate.cpp
 helper.cpp
 sbkenum.cpp
 sbkmodule.cpp
+sbkstring.cpp
 bindingmanager.cpp
 threadstatesaver.cpp
 typeresolver.cpp
@@ -38,7 +39,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
                     ${SPARSEHASH_INCLUDE_PATH})
 add_library(libshiboken SHARED ${libshiboken_SRC})
 target_link_libraries(libshiboken ${SBK_PYTHON_LIBRARIES})
-set_target_properties(libshiboken PROPERTIES OUTPUT_NAME "shiboken${shiboken_SUFFIX}-${PYTHON_BASENAME}"
+set_target_properties(libshiboken PROPERTIES OUTPUT_NAME "shiboken${shiboken_SUFFIX}${PYTHON_SUFFIX}"
                                              VERSION ${libshiboken_VERSION}
                                              SOVERSION ${libshiboken_SOVERSION}
                                              DEFINE_SYMBOL LIBSHIBOKEN_EXPORTS)
@@ -52,13 +53,14 @@ install(FILES
         helper.h
         sbkenum.h
         sbkmodule.h
-        python25compat.h
         sbkdbg.h
+        sbkstring.h
         shiboken.h
         shibokenmacros.h
         threadstatesaver.h
         typeresolver.h
         shibokenbuffer.h
+        sbkpython.h
         DESTINATION include/shiboken${shiboken_SUFFIX})
 install(TARGETS libshiboken EXPORT shiboken
                             LIBRARY DESTINATION "${LIB_INSTALL_DIR}"

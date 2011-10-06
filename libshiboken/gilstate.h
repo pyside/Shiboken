@@ -24,7 +24,7 @@
 #define GILSTATE_H
 
 #include <shibokenmacros.h>
-#include <Python.h>
+#include "sbkpython.h"
 
 namespace Shiboken
 {

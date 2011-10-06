@@ -1,6 +1,4 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 #
 # This file is part of the Shiboken Python Bindings Generator project.
 #
@@ -25,23 +23,27 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 # 02110-1301 USA
 
-'''Bug #572: Giving unicode value as 'body' argument to WebView's load method crashes python.'''
+import sys
 
-import unittest
+IS_PY3K = sys.version_info[0] == 3
 
-from sample import Echo
+if IS_PY3K:
+    def unicode(s):
+        return s
 
-class TestNamedArg(unittest.TestCase):
+    def b(s):
+        return bytes(s, "UTF8")
 
-    def testRegularCall(self):
-        echo = Echo()
-        self.assertRaises(TypeError, echo.methodWithNamedArg, unicode('foo'))
+    def l(n):
+        return n
 
-    def testNamedArgumentCall(self):
-        echo = Echo()
-        self.assertRaises(TypeError, echo.methodWithNamedArg, string=unicode('foo'))
+    long = int
+else:
+    def b(s):
+        return s
 
+    def l(n):
+        return long(n)
 
-if __name__ == '__main__':
-    unittest.main()
-
+    unicode = unicode
+    long = long

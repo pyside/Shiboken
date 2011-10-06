@@ -181,6 +181,8 @@ private:
 
     void writeFlagsDefinition(QTextStream& s, const AbstractMetaEnum* cppEnum);
     void writeFlagsMethods(QTextStream& s, const AbstractMetaEnum* cppEnum);
+    void writeFlagsToLong(QTextStream& s, const AbstractMetaEnum* cppEnum);
+    void writeFlagsNonZero(QTextStream& s, const AbstractMetaEnum* cppEnum);
     void writeFlagsNumberMethodsDefinition(QTextStream& s, const AbstractMetaEnum* cppEnum);
     void writeFlagsBinaryOperator(QTextStream& s, const AbstractMetaEnum* cppEnum,
                                   QString pyOpName, QString cppOpName);
@@ -252,20 +254,24 @@ private:
     // Mapping protocol structure members names.
     static QHash<QString, QString> m_mpFuncs;
 
-    static int m_currentErrorCode;
+    static QString m_currentErrorCode;
 
     /// Helper class to set and restore the current error code.
     class ErrorCode {
     public:
-        explicit ErrorCode(int errorCode) {
+        explicit ErrorCode(QString errorCode) {
             m_savedErrorCode = CppGenerator::m_currentErrorCode;
             CppGenerator::m_currentErrorCode = errorCode;
+        }
+        explicit ErrorCode(int errorCode) {
+            m_savedErrorCode = CppGenerator::m_currentErrorCode;
+            CppGenerator::m_currentErrorCode = QString::number(errorCode);
         }
         ~ErrorCode() {
             CppGenerator::m_currentErrorCode = m_savedErrorCode;
         }
     private:
-        int m_savedErrorCode;
+        QString m_savedErrorCode;
     };
 };
 

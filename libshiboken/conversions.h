@@ -23,11 +23,12 @@
 #ifndef CONVERSIONS_H
 #define CONVERSIONS_H
 
-#include <Python.h>
+#include "sbkpython.h"
 #include <limits>
 #include <memory>
 #include <typeinfo>
 
+#include "sbkstring.h"
 #include "sbkenum.h"
 #include "basewrapper.h"
 #include "bindingmanager.h"
@@ -37,10 +38,6 @@
 // TYPENAME_Check, so this macro allows users to add PyObject arguments to their added functions.
 #define PyObject_Check(X) true
 #include "autodecref.h"
-
-// Note: if there wasn't for the old-style classes, only a PyNumber_Check would suffice.
-#define SbkNumber_Check(X) \
-        (PyNumber_Check(X) && (!PyInstance_Check(X) || PyObject_HasAttrString(X, "__trunc__")))
 
 namespace Shiboken
 {
@@ -348,9 +345,10 @@ struct Converter_PyULongInt : Converter_PyInt<T>
     static inline PyObject* toPython(const T& cppobj) { return PyLong_FromUnsignedLong(cppobj); }
 };
 
+#define SbkChar_Check(X) \
+    SbkNumber_Check(X) || \
+    Shiboken::String::checkChar(X)
 
-/// Check if we can treat the pyobj as a char, i.e. it's a number or a string with just one character.
-#define SbkChar_Check(pyobj) (SbkNumber_Check(pyobj) || (PyString_Check(pyobj) && PyString_Size(pyobj) == 1))
 
 /// Specialization to convert char and unsigned char, it accepts Python numbers and strings with just one character.
 template <typename CharType>
@@ -362,25 +360,55 @@ struct CharConverter
     static inline PyObject* toPython(const CharType& cppobj) { return PyInt_FromLong(cppobj); }
     static CharType toCpp(PyObject* pyobj)
     {
-        if (PyString_Check(pyobj)) {
-            assert(PyString_Size(pyobj) == 1); // This check is made on SbkChar_Check
-            return PyString_AS_STRING(pyobj)[0];
-        } else {
-            PY_LONG_LONG result = PyLong_AsLongLong(pyobj);
+        if (PyBytes_Check(pyobj)) {
+            assert(PyBytes_GET_SIZE(pyobj) == 1); // This check is made on SbkChar_Check
+            return PyBytes_AS_STRING(pyobj)[0];
+        } else if (PyInt_Check(pyobj)) {
+            PY_LONG_LONG result = PyInt_AsUnsignedLongLongMask(pyobj);
             if (OverFlowChecker<CharType>::check(result))
                 PyErr_SetObject(PyExc_OverflowError, 0);
             return result;
+        } else if (Shiboken::String::check(pyobj)) {
+            return Shiboken::String::toCString(pyobj)[0];
+        } else {
+            return 0;
         }
     }
 };
 
 template <> struct Converter<unsigned long> : Converter_PyULongInt<unsigned long> {};
 template <> struct Converter<unsigned int> : Converter_PyULongInt<unsigned int> {};
-template <> struct Converter<char> : CharConverter<char> {
+template <> struct Converter<char> : CharConverter<char>
+{
     // Should we really return a string?
     using CharConverter<char>::toPython;
+    using CharConverter<char>::isConvertible;
+    using CharConverter<char>::toCpp;
+
+
+    static inline bool isConvertible(PyObject* pyobj) {
+        return SbkChar_Check(pyobj);
+    }
+
     static inline PyObject* toPython(const char& cppObj) {
-        return PyString_FromFormat("%c", cppObj);
+        return Shiboken::String::fromFormat("%c", cppObj);
+    }
+
+    static char toCpp(PyObject* pyobj)
+    {
+        if (PyBytes_Check(pyobj)) {
+            assert(PyBytes_GET_SIZE(pyobj) == 1); // This check is made on SbkChar_Check
+            return PyBytes_AS_STRING(pyobj)[0];
+        } else if (PyInt_Check(pyobj)) {
+            PY_LONG_LONG result = PyInt_AsUnsignedLongLongMask(pyobj);
+            if (OverFlowChecker<char>::check(result))
+                PyErr_SetObject(PyExc_OverflowError, 0);
+            return result;
+        } else if (Shiboken::String::check(pyobj)) {
+            return Shiboken::String::toCString(pyobj)[0];
+        } else {
+            return 0;
+        }
     }
 };
 template <> struct Converter<signed char> : CharConverter<signed char> {};
@@ -455,19 +483,23 @@ template <typename CString>
 struct Converter_CString
 {
     // Note: 0 is also a const char* in C++, so None is accepted in checkType
-    static inline bool checkType(PyObject* pyObj) { return pyObj == Py_None || PyString_Check(pyObj); }
-    static inline bool isConvertible(PyObject* pyObj) { return pyObj == Py_None || PyString_Check(pyObj); }
+    static inline bool checkType(PyObject* pyObj) {
+        return Shiboken::String::check(pyObj);
+    }
+    static inline bool isConvertible(PyObject* pyObj) {
+        return Shiboken::String::convertible(pyObj);
+    }
     static inline PyObject* toPython(void* cppobj) { return toPython(reinterpret_cast<CString>(cppobj)); }
     static inline PyObject* toPython(CString cppobj)
     {
         if (!cppobj)
             Py_RETURN_NONE;
-        return PyString_FromString(cppobj);
+        return Shiboken::String::fromCString(cppobj);
     }
     static inline CString toCpp(PyObject* pyobj) {
         if (pyobj == Py_None)
             return 0;
-        return PyString_AsString(pyobj);
+        return Shiboken::String::toCString(pyobj);
     }
 };
 
@@ -478,14 +510,14 @@ template <> struct Converter<std::string> : Converter_CString<std::string>
     static inline PyObject* toPython(void* cppobj) { return toPython(*reinterpret_cast<std::string*>(cppobj)); }
     static inline PyObject* toPython(std::string cppObj)
     {
-        return PyString_FromString(cppObj.c_str());
+        return Shiboken::String::fromCString(cppObj.c_str());
     }
 
     static inline std::string toCpp(PyObject* pyobj)
     {
         if (pyobj == Py_None)
             return 0;
-        return std::string(PyString_AsString(pyobj));
+        return std::string(Shiboken::String::toCString(pyobj));
     }
 };
 
@@ -616,7 +648,7 @@ struct StdMapConverter
 
         while (PyDict_Next(pyObj, &pos, &key, &value)) {
             if (!Converter<typename StdMap::key_type>::isConvertible(key)
-                && !Converter<typename StdMap::mapped_type>::isConvertible(value)) {
+                || !Converter<typename StdMap::mapped_type>::isConvertible(value)) {
                 return false;
             }
         }

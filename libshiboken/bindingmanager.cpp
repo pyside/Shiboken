@@ -21,13 +21,16 @@
  */
 
 #include "basewrapper.h"
-#include <cstddef>
-#include <fstream>
 #include "basewrapper_p.h"
 #include "bindingmanager.h"
 #include "google/dense_hash_map"
 #include "sbkdbg.h"
 #include "gilstate.h"
+#include "sbkstring.h"
+
+#include <cstddef>
+#include <fstream>
+
 
 namespace Shiboken
 {
@@ -108,8 +111,8 @@ static void showWrapperMap(const WrapperMap& wrapperMap)
         for (iter = wrapperMap.begin(); iter != wrapperMap.end(); ++iter) {
             fprintf(stderr, "key: %p, value: %p (%s, refcnt: %d)\n", iter->first,
                                                             iter->second,
-                                                            iter->second->ob_type->tp_name,
-                                                            (int) iter->second->ob_refcnt);
+                                                            Py_TYPE(iter->second)->tp_name,
+                                                            (int) ((PyObject*)iter->second)->ob_refcnt);
         }
         fprintf(stderr, "-------------------------------\n");
     }
@@ -176,7 +179,7 @@ bool BindingManager::hasWrapper(const void* cptr)
 
 void BindingManager::registerWrapper(SbkObject* pyObj, void* cptr)
 {
-    SbkObjectType* instanceType = reinterpret_cast<SbkObjectType*>(pyObj->ob_type);
+    SbkObjectType* instanceType = reinterpret_cast<SbkObjectType*>(Py_TYPE(pyObj));
     SbkObjectTypePrivate* d = instanceType->d;
 
     if (!d)
@@ -197,9 +200,9 @@ void BindingManager::registerWrapper(SbkObject* pyObj, void* cptr)
 
 void BindingManager::releaseWrapper(SbkObject* sbkObj)
 {
-    SbkObjectType* sbkType = reinterpret_cast<SbkObjectType*>(sbkObj->ob_type);
+    SbkObjectType* sbkType = reinterpret_cast<SbkObjectType*>(Py_TYPE(sbkObj));
     SbkObjectTypePrivate* d = sbkType->d;
-    int numBases = ((d && d->is_multicpp) ? getNumberOfCppBaseClasses(sbkObj->ob_type) : 1);
+    int numBases = ((d && d->is_multicpp) ? getNumberOfCppBaseClasses(Py_TYPE(sbkObj)) : 1);
 
     void** cptrs = reinterpret_cast<SbkObject*>(sbkObj)->d->cptr;
     for (int i = 0; i < numBases; ++i) {
@@ -241,13 +244,13 @@ PyObject* BindingManager::getOverride(const void* cptr, const char* methodName)
         }
     }
 
-    PyObject* pyMethodName = PyString_FromString(methodName);
+    PyObject* pyMethodName = Shiboken::String::fromCString(methodName);
     PyObject* method = PyObject_GetAttr((PyObject*)wrapper, pyMethodName);
 
     if (method && PyMethod_Check(method)
         && reinterpret_cast<PyMethodObject*>(method)->im_self == reinterpret_cast<PyObject*>(wrapper)) {
         PyObject* defaultMethod;
-        PyObject* mro = wrapper->ob_type->tp_mro;
+        PyObject* mro = Py_TYPE(wrapper)->tp_mro;
 
         // The first class in the mro (index 0) is the class being checked and it should not be tested.
         // The last class in the mro (size - 1) is the base Python object class which should not be tested also.

@@ -23,7 +23,7 @@
 #ifndef SBKENUM_H
 #define SBKENUM_H
 
-#include <Python.h>
+#include "sbkpython.h"
 #include "shibokenmacros.h"
 
 extern "C"
@@ -39,11 +39,12 @@ namespace Shiboken
 
 inline bool isShibokenEnum(PyObject* pyObj)
 {
-    return pyObj->ob_type->ob_type == &SbkEnumType_Type;
+    return Py_TYPE(pyObj->ob_type) == &SbkEnumType_Type;
 }
 
 namespace Enum
 {
+    LIBSHIBOKEN_API bool check(PyObject* obj);
     /**
      *  Creates a new enum type (and its flags type, if any is given)
      *  and registers it to Python and adds it to \p module.

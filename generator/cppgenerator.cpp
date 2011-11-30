@@ -3913,7 +3913,7 @@ void CppGenerator::finishGeneration()
     if (usePySideExtensions()) {
         s << "static int " << moduleName() << "_moduleTraverse(PyObject*, visitproc, void *)" << endl
           << "{" << endl
-          << INDENT << "PySide::runCleanupFunctions();" << endl
+          << INDENT << "PySide::runCleanupFunctions(); return 0;" << endl
           << "}" << endl << endl;
     }
 

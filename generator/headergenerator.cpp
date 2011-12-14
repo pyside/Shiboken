@@ -502,7 +502,7 @@ void HeaderGenerator::finishGeneration()
             s << typeEntry->conversionRule();
         }
     }
-    s << "// Generated converters implemantations -------------------------------" << endl << endl;
+    s << "// Generated converters implementations -------------------------------" << endl << endl;
     s << converterImpl << endl;
 
     s << "#endif // " << includeShield << endl << endl;

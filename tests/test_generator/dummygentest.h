@@ -1,7 +1,7 @@
 /*
- * This file is part of the Shiboken Python Bindings Generator project.
+ * This file is part of the PySide project.
  *
- * Copyright (C) 2009 Nokia Corporation and/or its subsidiary(-ies).
+ * Copyright (C) 2011 Nokia Corporation and/or its subsidiary(-ies).
  *
  * Contact: PySide team <contact@pyside.org>
  *
@@ -21,7 +21,31 @@
  *
  */
 
-#include "cppgenerator.h"
-#include "headergenerator.h"
+#ifndef DUMMYGENTABLETEST_H
+#define DUMMYGENTABLETEST_H
 
-EXPORT_GENERATOR_PLUGIN(new CppGenerator << new HeaderGenerator)
+#include <QObject>
+
+class DummyGenerator;
+
+class DummyGenTest : public QObject
+{
+    Q_OBJECT
+
+private:
+    QString workDir;
+    QString headerFilePath;
+    QString typesystemFilePath;
+    QString generatedFilePath;
+    QString projectFilePath;
+
+private slots:
+    void initTestCase();
+    void testCallGenRunnerWithFullPathToDummyGenModule();
+    void testCallGenRunnerWithNameOfDummyGenModule();
+    void testCallDummyGeneratorExecutable();
+    void testProjectFileArgumentsReading();
+};
+
+#endif
+

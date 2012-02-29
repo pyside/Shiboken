@@ -36,5 +36,5 @@ target_link_libraries(minimal
                       ${SBK_PYTHON_LIBRARIES}
                       libshiboken)
 
-add_dependencies(minimal shiboken_generator)
+add_dependencies(minimal shiboken)
 

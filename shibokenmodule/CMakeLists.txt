@@ -29,5 +29,5 @@ target_link_libraries(shibokenmodule
                       ${SBK_PYTHON_LIBRARIES}
                       libshiboken)
 
-add_dependencies(shibokenmodule shiboken_generator)
+add_dependencies(shibokenmodule shiboken)
 

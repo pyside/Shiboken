@@ -11,8 +11,10 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/sbkversion.h.in"
                "${CMAKE_CURRENT_BINARY_DIR}/sbkversion.h" @ONLY)
 
 #Find installed sparsehash
-find_path(SPARSEHASH_INCLUDE_PATH sparseconfig.h PATH_SUFFIXES "/google/sparsehash")
-if(SPARSEHASH_INCLUDE_PATH)
+find_package(PkgConfig)
+pkg_check_modules(SPARSEHASH libsparsehash)
+if(SPARSEHASH_FOUND)
+    set(SPARSEHASH_INCLUDE_PATH ${SPARSEHASH_INCLUDE_DIRS})
     message(STATUS "Using system hash found in: ${SPARSEHASH_INCLUDE_PATH}")
 else()
     set(SPARSEHASH_INCLUDE_PATH ${CMAKE_SOURCE_DIR}/ext/sparsehash)

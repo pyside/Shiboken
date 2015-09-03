@@ -4,6 +4,7 @@
     <custom-type name="PyType" />
     <primitive-type name="bool" />
     <primitive-type name="unsigned long" />
+    <primitive-type name="size_t" />
     <add-function signature="isValid(PyObject*)" return-type="bool">
         <inject-code>
             bool isValid = Shiboken::Object::isValid(%1, false);
@@ -35,6 +36,15 @@
                     PyTuple_SET_ITEM(%PYARG_0, i, PyLong_FromVoidPtr(ptrs[i]));
             } else {
                 PyErr_SetString(PyExc_TypeError, "You need a shiboken-based type.");
+            }
+        </inject-code>
+   </add-function>
+
+   <add-function signature="getBinding(size_t)" return-type="PyObject *">
+        <inject-code>
+            %PYARG_0 = (PyObject*)Shiboken::BindingManager::instance().retrieveWrapper((void *)%1);
+            if(!%PYARG_0) {
+                PyErr_SetString(PyExc_ValueError, "No binding registered.");
             }
         </inject-code>
    </add-function>

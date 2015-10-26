@@ -111,6 +111,13 @@ else()
     set(SBK_PYTHON_INCLUDE_DIR ${PYTHON_INCLUDE_DIRS})
 endif()
 
+option(ENABLE_VERSION_SUFFIX "Used to use current version in suffix to generated files. This is used to allow multiples versions installed simultaneous." FALSE)
+if(ENABLE_VERSION_SUFFIX)
+    set(shiboken_SUFFIX "-${shiboken_MAJOR_VERSION}.${shiboken_MINOR_VERSION}")
+else()
+    set(shiboken_SUFFIX "")
+endif()
+
 add_subdirectory(libshiboken)
 add_subdirectory(doc)
 

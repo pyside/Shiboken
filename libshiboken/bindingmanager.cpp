@@ -140,9 +140,7 @@ void BindingManager::BindingManagerPrivate::releaseWrapper(void* cptr)
 void BindingManager::BindingManagerPrivate::assignWrapper(SbkObject* wrapper, const void* cptr)
 {
     assert(cptr);
-    WrapperMap::iterator iter = wrapperMapper.find(cptr);
-    if (iter == wrapperMapper.end())
-        wrapperMapper.insert(std::make_pair(cptr, wrapper));
+    wrapperMapper[cptr] = wrapper;
 }
 
 BindingManager::BindingManager()

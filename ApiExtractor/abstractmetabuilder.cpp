@@ -220,6 +220,7 @@ void AbstractMetaBuilder::traverseOperatorFunction(FunctionModelItem item)
     bool firstArgumentIsSelf = true;
     bool unaryOperator = false;
 
+    if (arguments.size() == 0) return;
     baseoperandClass = argumentToClass(arguments.at(0));
 
     if (arguments.size() == 1) {

@@ -70,7 +70,7 @@ public:
     Str objectName() const;
     void setObjectName(const Str& name);
 
-    inline unsigned long identifier() const { return reinterpret_cast<unsigned long>(this); }
+    inline unsigned long identifier() const { return reinterpret_cast<uintptr_t>(this); }
 
     bool causeEvent(Event::EventType eventType);
 

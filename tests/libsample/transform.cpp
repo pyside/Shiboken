@@ -27,7 +27,9 @@
 #ifdef _WIN32
 #include <math.h>
 #include <float.h>
+#ifndef __MINGW64_VERSION_MAJOR
 static inline bool isfinite(double a) { return _finite(a); }
+#endif
 #else
 #include <cmath>
 #endif

@@ -90,13 +90,13 @@ bool
 SimpleFile::exists() const
 {
     std::ifstream ifile(p->m_filename);
-    return ifile;
+    return bool(ifile);
 }
 
 bool
 SimpleFile::exists(const char* filename)
 {
     std::ifstream ifile(filename);
-    return ifile;
+    return bool(ifile);
 }
 

@@ -588,6 +588,8 @@ _InputIterator pp::handle_define(_InputIterator __first, _InputIterator __last)
             }
         }
 
+        __first = skip_blanks(__first, __last);
+
         assert(*__first == ')');
         ++__first;
     }

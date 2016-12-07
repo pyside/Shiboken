@@ -26,7 +26,7 @@
 #include "sbkpython.h"
 #include "shibokenmacros.h"
 
-class SbkObject;
+struct SbkObject;
 namespace Shiboken
 {
 

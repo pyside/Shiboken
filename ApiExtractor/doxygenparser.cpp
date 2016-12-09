@@ -64,6 +64,17 @@ void DoxygenParser::fillDocumentation(AbstractMetaClass* metaClass)
     doxyFileSuffix += metaClass->name();
     doxyFileSuffix += ".xml";
 
+    // if capital chars are disabled
+    QString lowerCaseDoxyFileSuffix;
+    for(QString::const_iterator i = doxyFileSuffix.begin(); i != doxyFileSuffix.end(); ++i) {
+        if(i->isUpper()) {
+            lowerCaseDoxyFileSuffix.append('_');
+            lowerCaseDoxyFileSuffix.append(i->toLower());
+        } else {
+            lowerCaseDoxyFileSuffix.append(*i);
+        }
+    }
+
     const char* prefixes[] = { "class", "struct", "namespace" };
     const int numPrefixes = sizeof(prefixes) / sizeof(const char*);
     bool isProperty = false;
@@ -73,6 +84,11 @@ void DoxygenParser::fillDocumentation(AbstractMetaClass* metaClass)
         doxyFilePath = documentationDataDirectory() + "/" + prefixes[i] + doxyFileSuffix;
         if (QFile::exists(doxyFilePath))
             break;
+
+        doxyFilePath = documentationDataDirectory() + "/" + prefixes[i] + lowerCaseDoxyFileSuffix;
+        if (QFile::exists(doxyFilePath))
+            break;
+
         doxyFilePath.clear();
     }
 
@@ -80,7 +96,7 @@ void DoxygenParser::fillDocumentation(AbstractMetaClass* metaClass)
         ReportHandler::warning("Can't find doxygen file for class "
                                + metaClass->name() + ", tried: "
                                + documentationDataDirectory() + "/{struct|class|namespace}"
-                               + doxyFileSuffix);
+                               + "{" + doxyFileSuffix + "|" + lowerCaseDoxyFileSuffix + "}");
         return;
     }
     QXmlQuery xquery;

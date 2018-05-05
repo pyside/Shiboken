@@ -2,11 +2,11 @@ project(shibokengenerator)
 
 set(shiboken_SRC
 generator.cpp
-shiboken/cppgenerator.cpp
-shiboken/headergenerator.cpp
-shiboken/overloaddata.cpp
-shiboken/shibokengenerator.cpp
-shiboken/shibokennormalize.cpp
+shibokendir/cppgenerator.cpp
+shibokendir/headergenerator.cpp
+shibokendir/overloaddata.cpp
+shibokendir/shibokengenerator.cpp
+shibokendir/shibokennormalize.cpp
 main.cpp
 )
 
@@ -15,7 +15,7 @@ if (NOT DISABLE_DOCSTRINGS)
     add_definitions(-DDOCSTRINGS_ENABLED)
 endif()
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/shiboken
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/shibokendir
                     ${CMAKE_CURRENT_SOURCE_DIR}/qtdoc
                     ${CMAKE_CURRENT_SOURCE_DIR}
                     ${CMAKE_CURRENT_BINARY_DIR}
